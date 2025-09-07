@@ -25,7 +25,7 @@ jobs:
     
     - name: Run tests
       run: |
-        pytest tests/ -v
+        PYTHONPATH=. pytest tests/ -v
 
   build-and-push:
     needs: test
