@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fti-predict-learn
+  labels:
+    app: fti-predict-learn
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fti-predict-learn
+  template:
+    metadata:
+      labels:
+        app: fti-predict-learn
+    spec:
+      containers:
+      - name: fti-predict-learn
+        image: r0d3r1ch25/fti_predict_learn:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8000"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5

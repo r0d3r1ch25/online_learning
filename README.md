@@ -22,43 +22,27 @@ A FastAPI-based online machine learning service using River for real-time model 
 
 ## Quick Start
 
-### Local Development
+### Kubernetes Deployment
 
-1. Install dependencies:
+1. Create k3d cluster:
 ```bash
-make install
+make cluster-up
 ```
 
-2. Run the development server:
+2. Deploy application:
 ```bash
-make dev
+make k8s-apply
 ```
 
-3. Run tests:
+3. Access the application:
 ```bash
-make test
+http://localhost:30080
 ```
 
-### Docker
-
-1. Build the image:
+4. Clean up:
 ```bash
-make build
-```
-
-2. Run locally:
-```bash
-make run
-```
-
-3. Push to registry:
-```bash
-make push
-```
-
-### Complete workflow:
-```bash
-make all  # Build, test, and push
+make k8s-delete
+make cluster-down
 ```
 
 ## Project Structure
@@ -72,11 +56,13 @@ online_learning/
 │   └── service.py           # FastAPI application
 ├── tests/
 │   └── test_requests.py     # API integration tests
-├── main.py                  # Application entry point
-├── Dockerfile              # Container configuration
-├── requirements.txt        # Python dependencies
-├── pytest.ini            # Test configuration
-└── Makefile              # Build automation
+├── k8s/
+│   ├── deployment.yaml     # Kubernetes deployment
+│   └── service.yaml        # Kubernetes service
+├── main.py                 # Application entry point
+├── Dockerfile             # Container configuration
+├── requirements.txt       # Python dependencies
+└── Makefile             # k8s automation
 
 ```
 

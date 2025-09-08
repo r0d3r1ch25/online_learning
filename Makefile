@@ -1,55 +1,31 @@
 # Variables
-IMAGE_NAME = r0d3r1ch25/fti_predict_learn
-TAG = latest
-DOCKERFILE = Dockerfile
+CLUSTER_NAME = fti-predict-cluster
 
 # Default target
 .PHONY: help
 help:
 	@echo "Available commands:"
-	@echo "  build    - Build Docker image"
-	@echo "  push     - Push Docker image to registry"
-	@echo "  test     - Run pytest"
-	@echo "  run      - Run container locally"
-	@echo "  clean    - Remove local Docker image"
-	@echo "  all      - Build, test, and push"
+	@echo "  cluster-up    - Create k3d cluster"
+	@echo "  cluster-down  - Delete k3d cluster"
+	@echo "  k8s-apply     - Apply Kubernetes manifests"
+	@echo "  k8s-delete    - Delete Kubernetes resources"
 
-# Build Docker image
-.PHONY: build
-build:
-	docker build -t $(IMAGE_NAME):$(TAG) -f $(DOCKERFILE) .
+# Create k3d cluster
+.PHONY: cluster-up
+cluster-up:
+	k3d cluster create $(CLUSTER_NAME) --port "30080:30080@server:0"
 
-# Push Docker image
-.PHONY: push
-push:
-	docker push $(IMAGE_NAME):$(TAG)
+# Delete k3d cluster
+.PHONY: cluster-down
+cluster-down:
+	k3d cluster delete $(CLUSTER_NAME)
 
-# Run tests
-.PHONY: test
-test:
-	python3 -m pytest tests/ -v
+# Apply Kubernetes manifests
+.PHONY: k8s-apply
+k8s-apply:
+	kubectl apply -f k8s/
 
-# Run container locally
-.PHONY: run
-run:
-	docker run -p 8000:8000 $(IMAGE_NAME):$(TAG)
-
-# Clean up local image
-.PHONY: clean
-clean:
-	docker rmi $(IMAGE_NAME):$(TAG) || true
-
-# Build, test, and push
-.PHONY: all
-all: build test push
-	@echo "Build, test, and push completed successfully!"
-
-# Install dependencies
-.PHONY: install
-install:
-	python3 -m pip install -r requirements.txt
-
-# Run development server
-.PHONY: dev
-dev:
-	python main.py
+# Delete Kubernetes resources
+.PHONY: k8s-delete
+k8s-delete:
+	kubectl delete -f k8s/
