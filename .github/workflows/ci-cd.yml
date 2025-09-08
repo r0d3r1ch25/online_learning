@@ -25,6 +25,7 @@ jobs:
     
     - name: Run tests
       run: |
+        cd model_service
         PYTHONPATH=. pytest tests/ -v
 
   build-and-push:
@@ -47,7 +48,8 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
-        context: .
+        context: ./model_service
+        platforms: linux/arm64
         push: true
         tags: r0d3r1ch25/fti_predict_learn:latest
         cache-from: type=gha

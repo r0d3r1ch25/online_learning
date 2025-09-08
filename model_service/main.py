@@ -1,7 +1,7 @@
 import os
 import signal
 import uvicorn
-from ml_api.service import app
+from service import app
 
 def signal_handler(signum, frame):
     print(f"Received signal {signum}, shutting down gracefully...")

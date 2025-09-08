@@ -22,6 +22,18 @@ A FastAPI-based online machine learning service using River for real-time model 
 
 ## Quick Start
 
+### Local Development
+
+1. Run tests:
+```bash
+make test
+```
+
+2. Build ARM64 image:
+```bash
+make build
+```
+
 ### Kubernetes Deployment
 
 1. Create k3d cluster:
@@ -49,20 +61,20 @@ make cluster-down
 
 ```
 online_learning/
-├── ml_api/
+├── model_service/
 │   ├── __init__.py
 │   ├── metrics_manager.py    # Performance metrics tracking
 │   ├── model_manager.py      # Model lifecycle management
-│   └── service.py           # FastAPI application
-├── tests/
-│   └── test_requests.py     # API integration tests
+│   ├── service.py           # FastAPI application
+│   ├── main.py             # Application entry point
+│   ├── Dockerfile          # Container configuration
+│   ├── requirements.txt    # Python dependencies
+│   └── tests/
+│       └── test_requests.py # API integration tests
 ├── k8s/
 │   ├── deployment.yaml     # Kubernetes deployment
 │   └── service.yaml        # Kubernetes service
-├── main.py                 # Application entry point
-├── Dockerfile             # Container configuration
-├── requirements.txt       # Python dependencies
-└── Makefile             # k8s automation
+└── Makefile               # Build and k8s automation
 
 ```
 

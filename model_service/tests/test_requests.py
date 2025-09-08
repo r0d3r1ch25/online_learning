@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from ml_api.service import app
+from service import app
 
 client = TestClient(app)
 

@@ -10,6 +10,7 @@ help:
 	@echo "  k8s-apply     - Apply Kubernetes manifests"
 	@echo "  k8s-delete    - Delete Kubernetes resources"
 
+
 # Create k3d cluster
 .PHONY: cluster-up
 cluster-up:
@@ -21,11 +22,11 @@ cluster-down:
 	k3d cluster delete $(CLUSTER_NAME)
 
 # Apply Kubernetes manifests
-.PHONY: k8s-apply
-k8s-apply:
+.PHONY: apply
+apply:
 	kubectl apply -f k8s/
 
 # Delete Kubernetes resources
-.PHONY: k8s-delete
-k8s-delete:
+.PHONY: delete
+delete:
 	kubectl delete -f k8s/

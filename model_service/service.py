@@ -2,8 +2,8 @@
 
 import logging
 from fastapi import FastAPI
-from ml_api.model_manager import ModelManager
-from ml_api.metrics_manager import MetricsManager
+from model_manager import ModelManager
+from metrics_manager import MetricsManager
 
 logging.basicConfig(level=logging.INFO)
 
