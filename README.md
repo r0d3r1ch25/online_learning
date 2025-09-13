@@ -9,6 +9,7 @@ A FastAPI-based online machine learning service using River for real-time model 
 - **Metrics Tracking**: Monitor model performance over time
 - **Health Monitoring**: Built-in health checks and service info
 - **Docker Support**: Containerized deployment ready
+- **Argo Workflows**: ML pipeline orchestration and automation
 
 ## API Endpoints
 
@@ -41,19 +42,23 @@ make build
 make cluster-up
 ```
 
-2. Deploy application:
+2. Deploy all services (ML API + Argo Workflows):
 ```bash
-make k8s-apply
+make apply
 ```
 
-3. Access the application:
+3. Access services:
 ```bash
+# ML API
 http://localhost:30080
+
+# Argo Workflows UI
+http://localhost:30090
 ```
 
 4. Clean up:
 ```bash
-make k8s-delete
+kubectl delete -f k8s/
 make cluster-down
 ```
 
@@ -72,8 +77,9 @@ online_learning/
 │   └── tests/
 │       └── test_requests.py # API integration tests
 ├── k8s/
-│   ├── deployment.yaml     # Kubernetes deployment
-│   └── service.yaml        # Kubernetes service
+│   ├── deployment.yaml     # ML API deployment
+│   ├── service.yaml        # ML API service
+│   └── argo-workflows.yaml # Argo Workflows deployment
 └── Makefile               # Build and k8s automation
 
 ```

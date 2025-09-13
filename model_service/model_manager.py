@@ -1,45 +1,64 @@
-# ml_api/model_manager.py
+# model_manager.py
 
 from river import linear_model, preprocessing
+import collections
 
-# -------------------------
-# MODEL HOLDER (Ready for DI)
-# -------------------------
 class ModelManager:
-    """
-    Handles the online model.
-    Ready for dependency injection or replacement later.
-    You can swap River models or integrate with other frameworks.
-    """
     def __init__(self):
-        # Simple example: online linear regression with standardization
         self.model = preprocessing.StandardScaler() | linear_model.LinearRegression()
-        self.history = []  # Stores predictions and real values for metrics
-        self.series_last_value = {}  # Track last value per series_id
+        self.series_data = collections.defaultdict(list)  # Store history per series
+        self.step = 0
 
-    def predict(self, series_id, x=None):
-        """
-        Predicts next value. In online learning, you might update after real observed value.
-        x: optional features (exogenous)
-        """
-        # Here, a simple prediction using last known value
-        last = self.series_last_value.get(series_id, 0)
-        return last  # Simplified for demo
+    def _create_features(self, series_id, value=None):
+        """Create feature vector with lags and current value"""
+        history = self.series_data[series_id]
+        features = {'step': self.step}
+        
+        # Add lag features
+        for i in range(1, min(4, len(history) + 1)):  # Up to 3 lags
+            if i <= len(history):
+                features[f'lag_{i}'] = history[-i]
+            else:
+                features[f'lag_{i}'] = 0.0
+        
+        # Add current value if provided (for training)
+        if value is not None:
+            features['current'] = value
+            
+        return features
 
-    def train(self, series_id, y):
-        """
-        Update the model with new observation (online learning)
-        """
-        # For simplicity, x=1 for River model
-        self.model.learn_one({'x':1}, y)
-        self.series_last_value[series_id] = y
-        self.history.append({'series_id': series_id, 'y': y})
+    def train(self, series_id, value):
+        # Create features before adding to history
+        x = self._create_features(series_id, value)
+        y = value
+        
+        # Train model
+        self.model.learn_one(x, y)
+        
+        # Update history
+        self.series_data[series_id].append(value)
+        if len(self.series_data[series_id]) > 10:  # Keep last 10 values
+            self.series_data[series_id].pop(0)
+        
+        self.step += 1
+
+    def predict(self, series_id):
+        x = self._create_features(series_id)
+        return self.model.predict_one(x)
 
     def predict_learn(self, series_id, y_real):
-        """
-        Predicts first, then updates the model with y_real
-        Returns the prediction made before seeing y_real
-        """
-        pred = self.predict(series_id)
-        self.train(series_id, y_real)
+        # Predict first
+        x = self._create_features(series_id)
+        pred = self.model.predict_one(x)
+        
+        # Then learn with real value
+        x_learn = self._create_features(series_id, y_real)
+        self.model.learn_one(x_learn, y_real)
+        
+        # Update history
+        self.series_data[series_id].append(y_real)
+        if len(self.series_data[series_id]) > 10:
+            self.series_data[series_id].pop(0)
+        
+        self.step += 1
         return pred
