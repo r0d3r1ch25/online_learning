@@ -125,7 +125,9 @@ metadata:
   namespace: argo
 data:
   config: |
-    containerRuntimeExecutor: docker
+    containerRuntimeExecutor: k8sapi
+    executor:
+      image: quay.io/argoproj/argoexec:v3.5.8
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -146,10 +148,10 @@ spec:
         - --configmap
         - workflow-controller-configmap
         - --executor-image
-        - quay.io/argoproj/argoexec:v3.4.4
+        - quay.io/argoproj/argoexec:v3.5.8
         command:
         - workflow-controller
-        image: quay.io/argoproj/workflow-controller:v3.4.4
+        image: quay.io/argoproj/workflow-controller:v3.5.8
         name: workflow-controller
         resources:
           requests:
@@ -178,7 +180,8 @@ spec:
       - args:
         - server
         - --auth-mode=server
-        image: quay.io/argoproj/argocli:v3.4.4
+        - --secure=false
+        image: quay.io/argoproj/argocli:v3.5.8
         name: argo-server
         ports:
         - containerPort: 2746
