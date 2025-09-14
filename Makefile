@@ -24,3 +24,7 @@ cluster-down:
 .PHONY: apply
 apply:
 	kubectl apply -f k8s/
+
+
+
+
