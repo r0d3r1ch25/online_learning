@@ -42,21 +42,26 @@ make build
 make cluster-up
 ```
 
-2. Deploy all services (ML API + Argo Workflows):
+2. Deploy ML API:
 ```bash
 make apply
 ```
 
-3. Access services:
+3. Deploy Argo Workflows (optional):
+```bash
+make argo
+```
+
+4. Access services:
 ```bash
 # ML API
 http://localhost:30080
 
-# Argo Workflows UI
+# Argo Workflows UI (if deployed)
 http://localhost:30090
 ```
 
-4. Clean up:
+5. Clean up:
 ```bash
 kubectl delete -f k8s/
 make cluster-down
@@ -66,27 +71,41 @@ make cluster-down
 
 ```
 online_learning/
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml        # GitHub Actions CI/CD pipeline
+├── argo/
+│   ├── hello-world.yaml     # Simple Argo workflow example
+│   └── quick-start-minimal.yaml # Argo Workflows installation
 ├── model_service/
 │   ├── __init__.py
-│   ├── metrics_manager.py    # Performance metrics tracking
-│   ├── model_manager.py      # Model lifecycle management
-│   ├── service.py           # FastAPI application
-│   ├── main.py             # Application entry point
-│   ├── Dockerfile          # Container configuration
-│   ├── requirements.txt    # Python dependencies
+│   ├── metrics_manager.py   # Performance metrics tracking
+│   ├── model_manager.py     # Model lifecycle management
+│   ├── service.py          # FastAPI application
+│   ├── main.py            # Application entry point
+│   ├── Dockerfile         # Container configuration
+│   ├── requirements.txt   # Python dependencies
 │   └── tests/
 │       └── test_requests.py # API integration tests
 ├── k8s/
-│   ├── deployment.yaml     # ML API deployment
-│   ├── service.yaml        # ML API service
-│   └── argo-workflows.yaml # Argo Workflows deployment
-└── Makefile               # Build and k8s automation
-
+│   ├── deployment.yaml    # ML API deployment
+│   └── service.yaml       # ML API service
+├── .gitignore            # Git ignore patterns
+├── Makefile             # Build and k8s automation
+├── README.md            # Project documentation
+└── test_api.sh          # API testing script
 ```
 
 ## API Usage Examples
 
-### Train the model:
+### Using the test script:
+```bash
+./test_api.sh
+```
+
+### Manual API calls:
+
+#### Train the model:
 ```bash
 curl -X POST "http://localhost:8000/train" \
   -H "Content-Type: application/json" \
@@ -99,7 +118,7 @@ curl -X POST "http://localhost:8000/train" \
   }'
 ```
 
-### Get predictions:
+#### Get predictions:
 ```bash
 curl -X POST "http://localhost:8000/predict" \
   -H "Content-Type: application/json" \
@@ -109,7 +128,7 @@ curl -X POST "http://localhost:8000/predict" \
   }'
 ```
 
-### Predict and learn:
+#### Predict and learn:
 ```bash
 curl -X POST "http://localhost:8000/predict_learn" \
   -H "Content-Type: application/json" \
@@ -121,10 +140,17 @@ curl -X POST "http://localhost:8000/predict_learn" \
 
 ## CI/CD
 
-The project includes GitHub Actions workflow for:
+The project includes GitHub Actions workflow (`.github/workflows/ci-cd.yml`) for:
 - Automated testing with pytest
 - Docker image building and pushing to Docker Hub
 - Triggered on push to main branch
+
+## Argo Workflows
+
+The project includes Argo Workflows integration:
+- `argo/hello-world.yaml` - Simple workflow example
+- `argo/quick-start-minimal.yaml` - Complete Argo installation manifest
+- Deploy with `make argo` command
 
 ## Environment Variables
 
