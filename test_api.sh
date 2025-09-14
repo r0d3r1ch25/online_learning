@@ -58,4 +58,3 @@ echo -e "\n9. Final Metrics:"
 curl -s "$API_URL/metrics" | jq
 
 echo -e "\n=== Multi-Feature Model Test Complete ==="
-echo "✅ Model now handles lag features and multiple series independently"

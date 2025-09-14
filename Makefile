@@ -1,14 +1,6 @@
 # Variables
 CLUSTER_NAME = fti-predict-cluster
-
-# Default target
-.PHONY: help
-help:
-	@echo "Available commands:"
-	@echo "  cluster-up    - Create k3d cluster"
-	@echo "  cluster-down  - Delete k3d cluster"
-	@echo "  k8s-apply     - Apply Kubernetes manifests"
-
+ARGO_WORKFLOWS_VERSION="v3.5.5"
 
 # Create k3d cluster
 .PHONY: cluster-up
@@ -25,6 +17,8 @@ cluster-down:
 apply:
 	kubectl apply -f k8s/
 
-
-
+.PHONY: argo
+argo:
+	kubectl create namespace argo || true
+	kubectl apply -n argo -f "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_WORKFLOWS_VERSION}/quick-start-minimal.yaml"
 
