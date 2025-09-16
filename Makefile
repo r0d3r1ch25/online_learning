@@ -25,7 +25,7 @@ argo:
 
 # Test Argo Workflows
 .PHONY: argo-hello
-clean:
+argo-hello:
 	argo submit -n argo --watch infra/argo/hello-world.yaml
 
 # Clean up deployments

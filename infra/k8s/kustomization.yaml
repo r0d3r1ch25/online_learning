@@ -5,8 +5,10 @@ namespace: fti
 
 resources:
   - namespace.yaml
-  - deployments/
-  - services/
+  - deployments/model-service.yaml
+  - services/model-service.yaml
+  - deployments/feature-service.yaml
+  - services/feature-service.yaml
 
 labels:
   - pairs:
