@@ -7,59 +7,39 @@ metadata:
 spec:
   entrypoint: online-learning-dag
 
-  volumeClaimTemplates:
-  - metadata:
-      name: repo-storage
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 1Gi
-
   templates:
   - name: online-learning-dag
     dag:
       tasks:
-        - name: clone-repo
-          template: clone-git-repo
         - name: ingest-data
-          template: get-data
-          dependencies: [clone-repo]
-        - name: generate-features
+          template: get-data-from-git
+        - name: generate-all-features
           template: run-feature-generation
           dependencies: [ingest-data]
           arguments:
             artifacts:
               - name: raw-data
                 from: "{{tasks.ingest-data.outputs.artifacts.data-artifact}}"
-        - name: predict-learn
+        - name: predict-all
           template: run-prediction
-          dependencies: [generate-features]
+          dependencies: [generate-all-features]
           arguments:
             artifacts:
               - name: features-data
-                from: "{{tasks.generate-features.outputs.artifacts.features-artifact}}"
+                from: "{{tasks.generate-all-features.outputs.artifacts.features-artifact}}"
 
-  - name: clone-git-repo
-    container:
-      image: alpine/git:latest
-      command: [git, clone, "https://github.com/r0d3r1ch25/online_learning.git", /src]
-      volumeMounts:
-        - name: repo-storage
-          mountPath: /src
-
-  - name: get-data
-    container:
-      image: alpine:latest
-      command: ["sh", "-c"]
-      args: ["cp /src/pipelines/ingestion_service/data.csv /tmp/data.csv"]
-      volumeMounts:
-        - name: repo-storage
-          mountPath: /src
+  - name: get-data-from-git
+    inputs:
+      artifacts:
+        - name: repo
+          path: /src
+          git:
+            repo: "https://github.com/r0d3r1ch25/online_learning.git"
+            branch: main
     outputs:
       artifacts:
         - name: data-artifact
-          path: /tmp/data.csv
+          path: /src/pipelines/ingestion_service/data.csv
 
   - name: run-feature-generation
     inputs:
@@ -70,15 +50,14 @@ spec:
       artifacts:
         - name: features-artifact
           path: /tmp/features.json
-    container:
+    script:
       image: python:3.9-slim
       command: [sh, -c]
-      args:
-        - |
-          pip install pandas requests
-          python -u /src/infra/argo/v2/feature_generator.py
+      source: |
+        pip install pandas requests
+        python /src/infra/argo/v2/prime_and_generate.py
       volumeMounts:
-        - name: repo-storage
+        - name: workdir
           mountPath: /src
 
   - name: run-prediction
@@ -86,13 +65,12 @@ spec:
       artifacts:
         - name: features-data
           path: /tmp/features.json
-    container:
+    script:
       image: python:3.9-slim
       command: [sh, -c]
-      args:
-        - |
-          pip install pandas requests
-          python -u /src/infra/argo/v2/predictor.py
+      source: |
+        pip install pandas requests
+        python /src/infra/argo/v2/batch_predict.py
       volumeMounts:
-        - name: repo-storage
+        - name: workdir
           mountPath: /src
