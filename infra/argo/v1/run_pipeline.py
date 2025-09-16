@@ -4,6 +4,7 @@ import pandas as pd
 import time
 import logging
 import os
+import sys
 
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -33,6 +34,20 @@ def wait_for_service(url, service_name):
     logging.error(f"Service '{service_name}' did not become available.")
     return False
 
+def add_observation(series_id, value, timestamp):
+    """Adds a single observation to the feature service."""
+    try:
+        response = requests.post(
+            f"{FEATURE_SERVICE_URL}/add_observation",
+            json={"series_id": series_id, "value": value}
+        )
+        response.raise_for_status()
+        logging.info(f"Added observation to feature service for {timestamp}: {value}")
+        return True
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error adding observation for {timestamp}: {e}")
+        return False
+
 def get_features(series_id, num_lags):
     """Gets features from the feature service."""
     try:
@@ -42,17 +57,16 @@ def get_features(series_id, num_lags):
         )
         response.raise_for_status()
         features = response.json().get("features", {})
-        logging.info(f"Successfully retrieved {len(features)} features for {series_id}.")
+        logging.info(f"Successfully retrieved {len(features)} features.")
         return features
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error getting features: {e}")
+        # This is expected for the first few records until enough lags are built up.
+        logging.warning(f"Could not get features (likely not enough history yet): {e}")
         return None
 
 def predict_and_learn(series_id, y_real, features):
     """Calls the model service to get a prediction and then learn from the actual value."""
     try:
-        # The model service doesn't currently accept features, but we pass them
-        # in anticipation of a future update.
         payload = {
             "series_id": series_id,
             "y_real": y_real
@@ -71,41 +85,43 @@ def predict_and_learn(series_id, y_real, features):
 
 # --- Main Execution ---
 def main():
-    logging.info("--- Starting Online Learning Simulation Pipeline ---")
+    logging.info("--- Starting Online Learning Simulation Pipeline (v1) ---")
 
-    # 1. Wait for services to be ready before starting the process
+    # 1. Wait for services to be ready
     if not wait_for_service(FEATURE_SERVICE_URL, "Feature Service"):
-        return
+        sys.exit(1)
     if not wait_for_service(MODEL_SERVICE_URL, "Model Service"):
-        return
+        sys.exit(1)
 
     # 2. Load the dataset
     if not os.path.exists(DATA_PATH):
         logging.error(f"Data file not found at '{DATA_PATH}'. Make sure the script is run from the repository root.")
-        return
+        sys.exit(1)
     
     data = pd.read_csv(DATA_PATH)
     logging.info(f"Loaded {len(data)} records from {DATA_PATH}")
 
-    # 3. Iterate through the dataset to simulate online learning
-    # The feature_service loads the entire dataset on startup.
-    # We will iterate through the same data, get features for the *current* state of the world,
-    # and then ask the model to predict and learn based on the actual value.
+    # 3. Main simulation loop
+    # We iterate through the dataset, simulating the arrival of new data over time.
+    logging.info("--- Starting main simulation loop ---")
     for index, row in data.iterrows():
         y_value = float(row['target'])
         timestamp = row['input']
         logging.info(f"--- Processing Record {index+1}: Timestamp={timestamp} ---")
 
-        # a. Get the latest features.
-        # In this simulation, the feature service already has all historical data.
+        # a. Get features for the current state (based on previously added observations).
         features = get_features(SERIES_ID, NUM_LAGS)
 
-        # b. Use the features and the actual value to get a prediction and update the model.
+        # b. If we have features, get a prediction and update the model.
         if features is not None:
             predict_and_learn(SERIES_ID, y_value, features)
+        else:
+            logging.warning("Skipping predict/learn step because no features were available.")
 
-        # Add a small delay to make the log output readable
-        time.sleep(1)
+        # c. Add the current observation to the feature service for the *next* iteration.
+        add_observation(SERIES_ID, y_value, timestamp)
+        
+        time.sleep(0.1) # Small delay to simulate time passing
 
     logging.info("--- Online Learning Simulation Pipeline Finished ---")
 
