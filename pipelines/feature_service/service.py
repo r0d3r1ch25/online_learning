@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Dict, List, Optional
 import logging
 import os
-from .feature_manager import LagFeatureManager
+from feature_manager import LagFeatureManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +30,7 @@ class FeaturesResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     """Load initial data on startup."""
-    csv_path = "../data_ingestion/data.csv"
+    csv_path = "../ingestion_service/data.csv"
     if os.path.exists(csv_path):
         try:
             feature_manager.load_from_csv(csv_path, "air_passengers")

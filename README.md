@@ -36,7 +36,7 @@ A FastAPI-based online machine learning service using River for real-time model 
 
 1. Install and test the application:
 ```bash
-cd app/model_service
+cd pipelines/model_service
 pip install -r requirements.txt
 PYTHONPATH=. pytest tests/ -v
 python main.py
@@ -44,7 +44,7 @@ python main.py
 
 2. Build Docker image:
 ```bash
-cd app/model_service
+cd pipelines/model_service
 docker build -t fti-predict-learn .
 ```
 
@@ -102,7 +102,7 @@ online_learning/
 │   └── workflows/
 │       ├── features_ci.yml      # Feature service CI/CD
 │       └── predict_learn_ci.yml # Model service CI/CD
-├── app/                     # Application code (future GitOps repo)
+├── pipelines/               # Pipeline services (future GitOps repo)
 │   ├── model_service/
 │   │   ├── __init__.py
 │   │   ├── metrics_manager.py   # Performance metrics tracking
@@ -114,16 +114,18 @@ online_learning/
 │   │   ├── README.md          # App documentation
 │   │   └── tests/
 │   │       └── test_requests.py # API integration tests
-│   └── feature_service/
-│       ├── __init__.py
-│       ├── feature_manager.py   # Lag feature computation
-│       ├── service.py          # FastAPI feature service
-│       ├── main.py            # Feature service entry point
-│       ├── Dockerfile         # Feature service container
-│       ├── requirements.txt   # Feature service dependencies
-│       ├── README.md          # Feature service documentation
-│       └── tests/
-│           └── test_features.py # Feature service tests
+│   ├── feature_service/
+│   │   ├── __init__.py
+│   │   ├── feature_manager.py   # Lag feature computation
+│   │   ├── service.py          # FastAPI feature service
+│   │   ├── main.py            # Feature service entry point
+│   │   ├── Dockerfile         # Feature service container
+│   │   ├── requirements.txt   # Feature service dependencies
+│   │   ├── README.md          # Feature service documentation
+│   │   └── tests/
+│   │       └── test_features.py # Feature service tests
+│   └── ingestion_service/
+│       └── data.csv           # Sample time series data
 ├── infra/                   # Infrastructure code (future GitOps repo)
 │   ├── argo/
 │   │   ├── hello-world.yaml     # Simple Argo workflow example
@@ -204,7 +206,7 @@ curl -X POST "http://localhost:8000/predict_learn" \
 
 The repository is organized for future GitOps separation:
 
-- **`app/`** - Application code, CI/CD, and development tools
+- **`pipelines/`** - Pipeline services, CI/CD, and development tools
   - Will become a separate repository for application development
   - Contains GitHub Actions for testing and building Docker images
   - Includes model service code and documentation

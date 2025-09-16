@@ -21,11 +21,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r app/feature_service/requirements.txt
+        pip install -r pipelines/feature_service/requirements.txt
     
     - name: Run tests
       run: |
-        cd app/feature_service
+        cd pipelines/feature_service
         PYTHONPATH=. pytest tests/ -v
 
   build-and-push:
@@ -47,7 +47,7 @@ jobs:
     - name: Build and push feature service
       uses: docker/build-push-action@v5
       with:
-        context: ./app/feature_service
+        context: ./pipelines/feature_service
         platforms: linux/arm64
         push: true
         tags: r0d3r1ch25/fti_features:latest
