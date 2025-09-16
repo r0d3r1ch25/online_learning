@@ -1,0 +1,78 @@
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: online-learning-pipeline-v2
+  namespace: argo
+spec:
+  entrypoint: online-learning-dag
+
+  templates:
+  - name: online-learning-dag
+    dag:
+      tasks:
+        - name: ingest-data
+          template: get-data-from-git
+        - name: generate-features
+          template: run-feature-generation
+          dependencies: [ingest-data]
+          arguments:
+            artifacts:
+              - name: raw-data
+                from: "{{tasks.ingest-data.outputs.artifacts.data-artifact}}"
+        - name: predict-learn
+          template: run-prediction
+          dependencies: [generate-features]
+          arguments:
+            artifacts:
+              - name: features-data
+                from: "{{tasks.generate-features.outputs.artifacts.features-artifact}}"
+
+  - name: get-data-from-git
+    inputs:
+      artifacts:
+        - name: repo
+          path: /src
+          git:
+            repo: "https://github.com/r0d3r1ch25/online_learning.git"
+            branch: main
+    outputs:
+      artifacts:
+        - name: data-artifact
+          path: /src/pipelines/ingestion_service/data.csv
+
+  - name: run-feature-generation
+    inputs:
+      artifacts:
+        - name: raw-data
+          path: /tmp/data.csv
+    outputs:
+      artifacts:
+        - name: features-artifact
+          path: /tmp/features.json
+    container:
+      image: python:3.9-slim
+      command: [sh, -c]
+      args:
+        - |
+          pip install pandas requests
+          python -u /src/infra/argo/v2/feature_generator.py
+      volumeMounts:
+        - name: repo-storage
+          mountPath: /src
+
+  - name: run-prediction
+    inputs:
+      artifacts:
+        - name: features-data
+          path: /tmp/features.json
+    container:
+      image: python:3.9-slim
+      command: [sh, -c]
+      args:
+        - |
+          pip install pandas requests
+          python -u /src/infra/argo/v2/predictor.py
+      volumeMounts:
+        - name: repo-storage
+          mountPath: /src
