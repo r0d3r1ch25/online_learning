@@ -7,12 +7,24 @@ metadata:
 spec:
   entrypoint: online-learning-dag
 
+  volumeClaimTemplates:
+  - metadata:
+      name: repo-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+
   templates:
   - name: online-learning-dag
     dag:
       tasks:
+        - name: clone-repo
+          template: clone-git-repo
         - name: ingest-data
-          template: get-data-from-git
+          template: get-data
+          dependencies: [clone-repo]
         - name: generate-features
           template: run-feature-generation
           dependencies: [ingest-data]
@@ -28,18 +40,26 @@ spec:
               - name: features-data
                 from: "{{tasks.generate-features.outputs.artifacts.features-artifact}}"
 
-  - name: get-data-from-git
-    inputs:
-      artifacts:
-        - name: repo
-          path: /src
-          git:
-            repo: "https://github.com/r0d3r1ch25/online_learning.git"
-            branch: main
+  - name: clone-git-repo
+    container:
+      image: alpine/git:latest
+      command: [git, clone, "https://github.com/r0d3r1ch25/online_learning.git", /src]
+      volumeMounts:
+        - name: repo-storage
+          mountPath: /src
+
+  - name: get-data
+    container:
+      image: alpine:latest
+      command: ["sh", "-c"]
+      args: ["cp /src/pipelines/ingestion_service/data.csv /tmp/data.csv"]
+      volumeMounts:
+        - name: repo-storage
+          mountPath: /src
     outputs:
       artifacts:
         - name: data-artifact
-          path: /src/pipelines/ingestion_service/data.csv
+          path: /tmp/data.csv
 
   - name: run-feature-generation
     inputs:
