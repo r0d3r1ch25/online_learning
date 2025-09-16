@@ -5,7 +5,7 @@ ARGO_WORKFLOWS_VERSION = "v3.5.5"
 # Create k3d cluster
 .PHONY: cluster-up
 cluster-up:
-	k3d cluster create $(CLUSTER_NAME) --port "30080:30080@server:0" --port "30090:30090@server:0"
+	k3d cluster create $(CLUSTER_NAME) --port "30080:30080@server:0"
 
 # Delete k3d cluster
 .PHONY: cluster-down

@@ -86,10 +86,10 @@ make cluster-down
 
 ```
 online_learning/
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml        # GitHub Actions CI/CD pipeline
 ├── app/                     # Application code (future GitOps repo)
-│   ├── .github/
-│   │   └── workflows/
-│   │       └── ci-cd.yml    # GitHub Actions CI/CD pipeline
 │   └── model_service/
 │       ├── __init__.py
 │       ├── metrics_manager.py   # Performance metrics tracking
@@ -186,7 +186,7 @@ The repository is organized for future GitOps separation:
 
 ## CI/CD
 
-The project includes GitHub Actions workflow (`app/.github/workflows/ci-cd.yml`) for:
+The project includes GitHub Actions workflow (`.github/workflows/ci-cd.yml`) for:
 - Automated testing with pytest
 - Docker image building and pushing to Docker Hub
 - Triggered on push to main branch
