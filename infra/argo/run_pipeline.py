@@ -9,8 +9,8 @@ import os
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # URLs for services running in Kubernetes
-FEATURE_SERVICE_URL = "http://feature-service.default.svc.cluster.local:8001"
-MODEL_SERVICE_URL = "http://model-service.default.svc.cluster.local:8000"
+FEATURE_SERVICE_URL = "http://fti-features-service.fti.svc.cluster.local:8001"
+MODEL_SERVICE_URL = "http://fti-predict-learn-service.fti.svc.cluster.local:8000"
 SERIES_ID = "air_passengers"
 NUM_LAGS = 5
 
