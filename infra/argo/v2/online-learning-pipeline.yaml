@@ -6,54 +6,28 @@ metadata:
   namespace: argo
 spec:
   entrypoint: online-learning-dag
+  
+  volumes:
+  - name: repo
+    gitRepo:
+      repo: https://github.com/r0d3r1ch25/online_learning.git
+      branch: main
 
   templates:
     - name: online-learning-dag
       dag:
         tasks:
-          - name: ingest-data
-            template: get-data-from-git
-          - name: generate-all-features
+          - name: generate-features
             template: run-feature-generation
-            dependencies: [ingest-data]
-            arguments:
-              artifacts:
-                - name: repo
-                  from: "{{tasks.ingest-data.outputs.artifacts.repo}}"
-                - name: raw-data
-                  from: "{{tasks.ingest-data.outputs.artifacts.data-artifact}}"
-          - name: predict-all
+          - name: predict-learn
             template: run-prediction
-            dependencies: [generate-all-features]
+            dependencies: [generate-features]
             arguments:
               artifacts:
-                - name: repo
-                  from: "{{tasks.ingest-data.outputs.artifacts.repo}}"
                 - name: features-data
-                  from: "{{tasks.generate-all-features.outputs.artifacts.features-artifact}}"
-
-    - name: get-data-from-git
-      inputs:
-        artifacts:
-          - name: repo
-            path: /src
-            git:
-              repo: "https://github.com/r0d3r1ch25/online_learning.git"
-              branch: main
-      outputs:
-        artifacts:
-          - name: data-artifact
-            path: /src/pipelines/ingestion_service/data.csv
-          - name: repo
-            path: /src
+                  from: "{{tasks.generate-features.outputs.artifacts.features-artifact}}"
 
     - name: run-feature-generation
-      inputs:
-        artifacts:
-          - name: repo
-            path: /src
-          - name: raw-data
-            path: /tmp/data.csv
       outputs:
         artifacts:
           - name: features-artifact
@@ -63,13 +37,15 @@ spec:
         command: [sh, -c]
         source: |
           pip install pandas requests
-          python /src/infra/argo/v2/prime_and_generate.py
+          cp /repo/pipelines/ingestion_service/data.csv /tmp/data.csv
+          python /repo/infra/argo/v2/prime_and_generate.py
+        volumeMounts:
+        - name: repo
+          mountPath: /repo
 
     - name: run-prediction
       inputs:
         artifacts:
-          - name: repo
-            path: /src
           - name: features-data
             path: /tmp/features.json
       script:
@@ -77,4 +53,7 @@ spec:
         command: [sh, -c]
         source: |
           pip install pandas requests
-          python /src/infra/argo/v2/batch_predict.py
+          python /repo/infra/argo/v2/batch_predict.py
+        volumeMounts:
+        - name: repo
+          mountPath: /repo
