@@ -6,13 +6,15 @@ A FastAPI-based online machine learning service using River for real-time model 
 
 - **Online Learning**: Train models incrementally with new data
 - **Real-time Predictions**: Get predictions with automatic model updates
+- **Feature Engineering**: Automated lag feature extraction for time series
 - **Metrics Tracking**: Monitor model performance over time
 - **Health Monitoring**: Built-in health checks and service info
 - **Docker Support**: Containerized deployment ready
 - **Argo Workflows**: ML pipeline orchestration and automation
 
-## API Endpoints
+## Services
 
+### Model Service (Port 8000)
 - `GET /health` - Service health check
 - `GET /info` - Model and service information
 - `GET /metrics` - Performance metrics
@@ -20,6 +22,13 @@ A FastAPI-based online machine learning service using River for real-time model 
 - `POST /predict` - Get predictions for time series
 - `POST /predict_learn` - Predict and learn from real values
 - `POST /feedback` - Submit feedback for model improvement
+
+### Feature Service (Port 8001)
+- `GET /health` - Service health check
+- `GET /info` - Service information and series status
+- `POST /add_observation` - Add new observation to time series
+- `POST /features` - Get lag features for a series
+- `GET /features/{series_id}` - Get lag features (GET endpoint)
 
 ## Quick Start
 
@@ -88,19 +97,30 @@ make cluster-down
 online_learning/
 ├── .github/
 │   └── workflows/
-│       └── ci-cd.yml        # GitHub Actions CI/CD pipeline
+│       ├── features_ci.yml      # Feature service CI/CD
+│       └── predict_learn_ci.yml # Model service CI/CD
 ├── app/                     # Application code (future GitOps repo)
-│   └── model_service/
+│   ├── model_service/
+│   │   ├── __init__.py
+│   │   ├── metrics_manager.py   # Performance metrics tracking
+│   │   ├── model_manager.py     # Model lifecycle management
+│   │   ├── service.py          # FastAPI application
+│   │   ├── main.py            # Application entry point
+│   │   ├── Dockerfile         # Container configuration
+│   │   ├── requirements.txt   # Python dependencies
+│   │   ├── README.md          # App documentation
+│   │   └── tests/
+│   │       └── test_requests.py # API integration tests
+│   └── feature_service/
 │       ├── __init__.py
-│       ├── metrics_manager.py   # Performance metrics tracking
-│       ├── model_manager.py     # Model lifecycle management
-│       ├── service.py          # FastAPI application
-│       ├── main.py            # Application entry point
-│       ├── Dockerfile         # Container configuration
-│       ├── requirements.txt   # Python dependencies
-│       ├── README.md          # App documentation
+│       ├── feature_manager.py   # Lag feature computation
+│       ├── service.py          # FastAPI feature service
+│       ├── main.py            # Feature service entry point
+│       ├── Dockerfile         # Feature service container
+│       ├── requirements.txt   # Feature service dependencies
+│       ├── README.md          # Feature service documentation
 │       └── tests/
-│           └── test_requests.py # API integration tests
+│           └── test_features.py # Feature service tests
 ├── infra/                   # Infrastructure code (future GitOps repo)
 │   ├── argo/
 │   │   ├── hello-world.yaml     # Simple Argo workflow example
@@ -186,10 +206,14 @@ The repository is organized for future GitOps separation:
 
 ## CI/CD
 
-The project includes GitHub Actions workflow (`.github/workflows/ci-cd.yml`) for:
+The project includes separate GitHub Actions workflows:
+- `predict_learn_ci.yml` - Model service CI/CD
+- `features_ci.yml` - Feature service CI/CD
+
+Each workflow includes:
 - Automated testing with pytest
 - Docker image building and pushing to Docker Hub
-- Triggered on push to main branch
+- Triggered on push to main branch (only when respective service files change)
 
 ## Argo Workflows
 
