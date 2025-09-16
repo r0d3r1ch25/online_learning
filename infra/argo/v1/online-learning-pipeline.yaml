@@ -30,5 +30,5 @@ spec:
       args:
         - |
           pip install pandas requests
-          python infra/argo/run_pipeline.py
+          python infra/argo/v1/run_pipeline.py
       workingDir: /src
