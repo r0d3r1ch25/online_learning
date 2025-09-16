@@ -1,16 +1,18 @@
-# Online Learning API
+# Online Learning MLOps Platform
 
-A FastAPI-based online machine learning service using River for real-time model training and prediction.
+A comprehensive MLOps platform for online machine learning using FastAPI and River, featuring automated feature engineering, model training, and prediction services with Kubernetes deployment and Argo Workflows orchestration.
 
 ## Features
 
-- **Online Learning**: Train models incrementally with new data
-- **Real-time Predictions**: Get predictions with automatic model updates
-- **Feature Engineering**: Automated lag feature extraction for time series
-- **Metrics Tracking**: Monitor model performance over time
-- **Health Monitoring**: Built-in health checks and service info
-- **Docker Support**: Containerized deployment ready
-- **Argo Workflows**: ML pipeline orchestration and automation
+- **Online Learning**: Incremental model training with River ML library
+- **Real-time Predictions**: Live predictions with automatic model updates
+- **Feature Engineering**: Automated lag feature extraction for time series (up to 12 lags)
+- **Microservices Architecture**: Separate model and feature services
+- **Performance Monitoring**: Built-in metrics tracking and health checks
+- **Container-Native**: Docker containers with Kubernetes deployment
+- **CI/CD Pipeline**: Automated testing and Docker image building
+- **Workflow Orchestration**: Argo Workflows for ML pipeline automation
+- **GitOps Ready**: Organized structure for infrastructure and application separation
 
 ## Services
 
@@ -104,8 +106,8 @@ online_learning/
 ├── .github/
 │   └── workflows/
 │       ├── features_ci.yml      # Feature service CI/CD
-│       └── predict_learn_ci.yml # Model service CI/CD
-├── pipelines/               # Pipeline services (future GitOps repo)
+│       └── model_ci.yml         # Model service CI/CD
+├── pipelines/                   # Pipeline services (future GitOps repo)
 │   ├── model_service/
 │   │   ├── __init__.py
 │   │   ├── metrics_manager.py   # Performance metrics tracking
@@ -114,7 +116,7 @@ online_learning/
 │   │   ├── main.py            # Application entry point
 │   │   ├── Dockerfile         # Container configuration
 │   │   ├── requirements.txt   # Python dependencies
-│   │   ├── README.md          # App documentation
+│   │   ├── README.md          # Service documentation
 │   │   └── tests/
 │   │       └── test_requests.py # API integration tests
 │   ├── feature_service/
@@ -129,10 +131,16 @@ online_learning/
 │   │       └── test_features.py # Feature service tests
 │   └── ingestion_service/
 │       └── data.csv           # Sample time series data
-├── infra/                   # Infrastructure code (future GitOps repo)
+├── infra/                       # Infrastructure code (future GitOps repo)
 │   ├── argo/
 │   │   ├── hello-world.yaml     # Simple Argo workflow example
-│   │   └── quick-start-minimal.yaml # Argo Workflows installation
+│   │   ├── v1/
+│   │   │   ├── online-learning-pipeline.yaml # Basic pipeline workflow
+│   │   │   └── run_pipeline.py  # Pipeline execution script
+│   │   └── v2/
+│   │       ├── online-learning-pipeline.yaml # Advanced DAG workflow
+│   │       ├── feature_generator.py # Feature generation step
+│   │       └── predictor.py     # Prediction step
 │   ├── k8s/
 │   │   ├── deployments/
 │   │   │   ├── model-service.yaml     # Model service deployment
@@ -141,12 +149,13 @@ online_learning/
 │   │   │   ├── model-service.yaml     # Model service (port 30080)
 │   │   │   └── feature-service.yaml   # Feature service (port 30090)
 │   │   ├── namespace.yaml         # FTI namespace
-│   │   └── kustomization.yaml     # Kustomize configuration
-│   ├── test_model_api.sh    # Model service API tests
-│   └── test_features_api.sh # Feature service API tests
-├── .gitignore              # Git ignore patterns
-├── Makefile                # Infrastructure automation
-└── README.md               # Main project documentation
+│   │   ├── kustomization.yaml     # Kustomize configuration
+│   │   └── quick-start-minimal.yaml # Argo Workflows installation
+│   ├── test_model_api.sh        # Model service API tests
+│   └── test_features_api.sh     # Feature service API tests
+├── .gitignore                   # Git ignore patterns
+├── Makefile                     # Infrastructure automation
+└── README.md                    # Main project documentation
 ```
 
 ## API Usage Examples
@@ -202,7 +211,13 @@ curl -X POST "http://localhost:8000/predict_learn" \
 
 ### Argo Workflows (`infra/argo/`)
 - `hello-world.yaml` - Simple workflow example
-- `quick-start-minimal.yaml` - Complete Argo installation manifest
+- `v1/` - Basic pipeline implementation
+  - `online-learning-pipeline.yaml` - Simple sequential workflow
+  - `run_pipeline.py` - Pipeline execution script
+- `v2/` - Advanced pipeline implementation
+  - `online-learning-pipeline.yaml` - DAG-based workflow with dependencies
+  - `feature_generator.py` - Feature generation step
+  - `predictor.py` - Prediction and learning step
 
 ### Testing
 - `test_model_api.sh` - Model service API testing script
@@ -225,20 +240,35 @@ The repository is organized for future GitOps separation:
 ## CI/CD
 
 The project includes separate GitHub Actions workflows:
-- `predict_learn_ci.yml` - Model service CI/CD
+- `model_ci.yml` - Model service CI/CD
 - `features_ci.yml` - Feature service CI/CD
 
 Each workflow includes:
 - Automated testing with pytest
-- Docker image building and pushing to Docker Hub
-- Triggered on push to main branch (only when respective service files change)
+- Docker image building and pushing to Docker Hub:
+  - `r0d3r1ch25/fti_model:latest` (model service)
+  - `r0d3r1ch25/fti_features:latest` (feature service)
+- Triggered on push to main branch with manual trigger capability
 
 ## Argo Workflows
 
-The project includes Argo Workflows integration:
-- `infra/argo/hello-world.yaml` - Simple workflow example
-- `infra/argo/quick-start-minimal.yaml` - Complete Argo installation manifest
-- Deploy with `cd infra && make argo` command
+The project includes comprehensive Argo Workflows integration:
+
+### Installation
+- `infra/k8s/quick-start-minimal.yaml` - Complete Argo installation manifest
+- Deploy with `make argo` command
+
+### Pipeline Versions
+- **v1**: Basic sequential pipeline for simple use cases
+- **v2**: Advanced DAG-based pipeline with artifact passing and dependencies
+
+### Workflow Features
+- Git repository cloning
+- Data ingestion from CSV files
+- Feature generation using lag features
+- Model prediction and learning
+- Artifact passing between steps
+- Persistent volume claims for data sharing
 
 ## Environment Variables
 

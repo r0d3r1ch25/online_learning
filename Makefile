@@ -23,6 +23,11 @@ argo:
 	kubectl create namespace argo || true
 	kubectl apply -n argo -f "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_WORKFLOWS_VERSION}/quick-start-minimal.yaml"
 
+# Test Argo Workflows
+.PHONY: argo-hello
+clean:
+	argo submit -n argo --watch infra/argo/hello-world.yaml
+
 # Clean up deployments
 .PHONY: clean
 clean:
