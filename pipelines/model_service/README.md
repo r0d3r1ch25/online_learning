@@ -1,4 +1,4 @@
-# Online Learning API - Application
+# Model Service
 
 FastAPI-based online machine learning service using River for real-time model training and prediction.
 
@@ -8,28 +8,24 @@ FastAPI-based online machine learning service using River for real-time model tr
 
 1. Install dependencies:
 ```bash
-cd model_service
 pip install -r requirements.txt
 ```
 
 2. Run the application:
 ```bash
-cd model_service
 python main.py
 ```
 
 3. Run tests:
 ```bash
-cd model_service
 PYTHONPATH=. pytest tests/ -v
 ```
 
 ### Docker Build
 
 ```bash
-cd model_service
-docker build -t fti-predict-learn .
-docker run -p 8000:8000 fti-predict-learn
+docker build -t fti-model .
+docker run -p 8000:8000 fti-model
 ```
 
 ## API Endpoints

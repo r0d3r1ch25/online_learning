@@ -1,5 +1,5 @@
 # Variables
-CLUSTER_NAME = fti-predict-cluster
+CLUSTER_NAME = fti-cluster
 ARGO_WORKFLOWS_VERSION = "v3.5.5"
 
 # Create k3d cluster
@@ -22,11 +22,6 @@ apply:
 argo:
 	kubectl create namespace argo || true
 	kubectl apply -n argo -f "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_WORKFLOWS_VERSION}/quick-start-minimal.yaml"
-
-# Test API
-.PHONY: test-api
-test-api:
-	cd infra && ./test_api.sh
 
 # Clean up deployments
 .PHONY: clean

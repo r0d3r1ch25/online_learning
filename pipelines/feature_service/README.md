@@ -29,8 +29,8 @@ python main.py
 ### Docker
 
 ```bash
-docker build -t feature-service .
-docker run -p 8001:8001 feature-service
+docker build -t fti-features .
+docker run -p 8001:8001 fti-features
 ```
 
 ### Testing

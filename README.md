@@ -73,7 +73,10 @@ make argo
 
 4. Test the deployment:
 ```bash
-make test-api
+make test-api  # Tests both services
+# Or test individually:
+make test-model
+make test-features
 ```
 
 5. Access services:
@@ -139,7 +142,8 @@ online_learning/
 │   │   │   └── feature-service.yaml   # Feature service (port 30090)
 │   │   ├── namespace.yaml         # FTI namespace
 │   │   └── kustomization.yaml     # Kustomize configuration
-│   └── test_api.sh          # API testing script
+│   ├── test_model_api.sh    # Model service API tests
+│   └── test_features_api.sh # Feature service API tests
 ├── .gitignore              # Git ignore patterns
 ├── Makefile                # Infrastructure automation
 └── README.md               # Main project documentation
@@ -147,10 +151,11 @@ online_learning/
 
 ## API Usage Examples
 
-### Using the test script:
+### Using the test scripts:
 ```bash
 cd infra
-./test_api.sh
+./test_model_api.sh    # Test model service
+./test_features_api.sh # Test feature service
 ```
 
 ### Manual API calls:
@@ -200,7 +205,8 @@ curl -X POST "http://localhost:8000/predict_learn" \
 - `quick-start-minimal.yaml` - Complete Argo installation manifest
 
 ### Testing
-- `test_api.sh` - Comprehensive API testing script
+- `test_model_api.sh` - Model service API testing script
+- `test_features_api.sh` - Feature service API testing script
 
 ## GitOps Structure
 
