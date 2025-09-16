@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fti-features
+  labels:
+    app: fti-features
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fti-features
+  template:
+    metadata:
+      labels:
+        app: fti-features
+    spec:
+      containers:
+      - name: fti-features
+        image: r0d3r1ch25/fti_features:latest
+        ports:
+        - containerPort: 8001
+        env:
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8001"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 5

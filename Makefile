@@ -5,7 +5,7 @@ ARGO_WORKFLOWS_VERSION = "v3.5.5"
 # Create k3d cluster
 .PHONY: cluster-up
 cluster-up:
-	k3d cluster create $(CLUSTER_NAME) --port "30080:30080@server:0"
+	k3d cluster create $(CLUSTER_NAME) --port "30080:30080@server:0" --port "30090:30090@server:0"
 
 # Delete k3d cluster
 .PHONY: cluster-down
@@ -15,7 +15,7 @@ cluster-down:
 # Apply Kubernetes manifests
 .PHONY: apply
 apply:
-	kubectl apply -f infra/k8s/
+	kubectl apply -k infra/k8s/
 
 # Deploy Argo Workflows
 .PHONY: argo
@@ -31,4 +31,4 @@ test-api:
 # Clean up deployments
 .PHONY: clean
 clean:
-	kubectl delete -f infra/k8s/ || true
+	kubectl delete -k infra/k8s/ || true

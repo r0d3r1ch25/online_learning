@@ -78,11 +78,14 @@ make test-api
 
 5. Access services:
 ```bash
-# ML API
+# Model Service
 http://localhost:30080
 
-# Argo Workflows UI (if deployed)
+# Feature Service
 http://localhost:30090
+
+# Argo Workflows UI (if deployed)
+http://localhost:2746
 ```
 
 6. Clean up:
@@ -126,8 +129,13 @@ online_learning/
 │   │   ├── hello-world.yaml     # Simple Argo workflow example
 │   │   └── quick-start-minimal.yaml # Argo Workflows installation
 │   ├── k8s/
-│   │   ├── deployment.yaml    # ML API deployment
-│   │   └── service.yaml       # ML API service
+│   │   ├── deployments/
+│   │   │   ├── model-service.yaml     # Model service deployment
+│   │   │   └── feature-service.yaml   # Feature service deployment
+│   │   ├── services/
+│   │   │   ├── model-service.yaml     # Model service (port 30080)
+│   │   │   └── feature-service.yaml   # Feature service (port 30090)
+│   │   └── kustomization.yaml     # Kustomize configuration
 │   └── test_api.sh          # API testing script
 ├── .gitignore              # Git ignore patterns
 ├── Makefile                # Infrastructure automation
@@ -180,8 +188,9 @@ curl -X POST "http://localhost:8000/predict_learn" \
 ## Infrastructure Components
 
 ### Kubernetes Manifests (`infra/k8s/`)
-- `deployment.yaml` - ML API deployment configuration
-- `service.yaml` - ML API service with NodePort access
+- `deployments/` - Service deployment configurations
+- `services/` - Service definitions with NodePort access
+- `kustomization.yaml` - Kustomize configuration for organized deployment
 
 ### Argo Workflows (`infra/argo/`)
 - `hello-world.yaml` - Simple workflow example
