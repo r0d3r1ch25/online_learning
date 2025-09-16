@@ -1,10 +1,10 @@
 name: CI/CD Pipeline
 
 on:
-  # push:
-  #  branches:
-  #    - main
-  workflow_dispatch:
+  push:
+   branches:
+     - main
+  # workflow_dispatch:
 
 jobs:
   test:
@@ -21,11 +21,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r model_service/requirements.txt
+        pip install -r app/model_service/requirements.txt
     
     - name: Run tests
       run: |
-        cd model_service
+        cd app/model_service
         PYTHONPATH=. pytest tests/ -v
 
   build-and-push:
@@ -49,7 +49,7 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./model_service
+        context: ./app/model_service
         platforms: linux/arm64
         push: true
         tags: r0d3r1ch25/fti_predict_learn:latest

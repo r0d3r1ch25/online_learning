@@ -25,17 +25,27 @@ A FastAPI-based online machine learning service using River for real-time model 
 
 ### Local Development
 
-1. Run tests:
+1. Install and test the application:
 ```bash
-make test
+cd app/model_service
+pip install -r requirements.txt
+PYTHONPATH=. pytest tests/ -v
+python main.py
 ```
 
-2. Build ARM64 image:
+2. Build Docker image:
 ```bash
-make build
+cd app/model_service
+docker build -t fti-predict-learn .
 ```
 
 ### Kubernetes Deployment
+
+#### Prerequisites
+- k3d or any Kubernetes cluster
+- kubectl configured
+
+#### Deployment Steps
 
 1. Create k3d cluster:
 ```bash
@@ -52,7 +62,12 @@ make apply
 make argo
 ```
 
-4. Access services:
+4. Test the deployment:
+```bash
+make test-api
+```
+
+5. Access services:
 ```bash
 # ML API
 http://localhost:30080
@@ -61,9 +76,9 @@ http://localhost:30080
 http://localhost:30090
 ```
 
-5. Clean up:
+6. Clean up:
 ```bash
-kubectl delete -f k8s/
+make clean
 make cluster-down
 ```
 
@@ -71,35 +86,39 @@ make cluster-down
 
 ```
 online_learning/
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml        # GitHub Actions CI/CD pipeline
-├── argo/
-│   ├── hello-world.yaml     # Simple Argo workflow example
-│   └── quick-start-minimal.yaml # Argo Workflows installation
-├── model_service/
-│   ├── __init__.py
-│   ├── metrics_manager.py   # Performance metrics tracking
-│   ├── model_manager.py     # Model lifecycle management
-│   ├── service.py          # FastAPI application
-│   ├── main.py            # Application entry point
-│   ├── Dockerfile         # Container configuration
-│   ├── requirements.txt   # Python dependencies
-│   └── tests/
-│       └── test_requests.py # API integration tests
-├── k8s/
-│   ├── deployment.yaml    # ML API deployment
-│   └── service.yaml       # ML API service
-├── .gitignore            # Git ignore patterns
-├── Makefile             # Build and k8s automation
-├── README.md            # Project documentation
-└── test_api.sh          # API testing script
+├── app/                     # Application code (future GitOps repo)
+│   ├── .github/
+│   │   └── workflows/
+│   │       └── ci-cd.yml    # GitHub Actions CI/CD pipeline
+│   └── model_service/
+│       ├── __init__.py
+│       ├── metrics_manager.py   # Performance metrics tracking
+│       ├── model_manager.py     # Model lifecycle management
+│       ├── service.py          # FastAPI application
+│       ├── main.py            # Application entry point
+│       ├── Dockerfile         # Container configuration
+│       ├── requirements.txt   # Python dependencies
+│       ├── README.md          # App documentation
+│       └── tests/
+│           └── test_requests.py # API integration tests
+├── infra/                   # Infrastructure code (future GitOps repo)
+│   ├── argo/
+│   │   ├── hello-world.yaml     # Simple Argo workflow example
+│   │   └── quick-start-minimal.yaml # Argo Workflows installation
+│   ├── k8s/
+│   │   ├── deployment.yaml    # ML API deployment
+│   │   └── service.yaml       # ML API service
+│   └── test_api.sh          # API testing script
+├── .gitignore              # Git ignore patterns
+├── Makefile                # Infrastructure automation
+└── README.md               # Main project documentation
 ```
 
 ## API Usage Examples
 
 ### Using the test script:
 ```bash
+cd infra
 ./test_api.sh
 ```
 
@@ -138,9 +157,36 @@ curl -X POST "http://localhost:8000/predict_learn" \
   }'
 ```
 
+## Infrastructure Components
+
+### Kubernetes Manifests (`infra/k8s/`)
+- `deployment.yaml` - ML API deployment configuration
+- `service.yaml` - ML API service with NodePort access
+
+### Argo Workflows (`infra/argo/`)
+- `hello-world.yaml` - Simple workflow example
+- `quick-start-minimal.yaml` - Complete Argo installation manifest
+
+### Testing
+- `test_api.sh` - Comprehensive API testing script
+
+## GitOps Structure
+
+The repository is organized for future GitOps separation:
+
+- **`app/`** - Application code, CI/CD, and development tools
+  - Will become a separate repository for application development
+  - Contains GitHub Actions for testing and building Docker images
+  - Includes model service code and documentation
+
+- **`infra/`** - Infrastructure manifests and deployment automation
+  - Will become a separate repository for infrastructure management
+  - Contains Kubernetes manifests and Argo Workflows
+  - Includes deployment scripts and testing tools
+
 ## CI/CD
 
-The project includes GitHub Actions workflow (`.github/workflows/ci-cd.yml`) for:
+The project includes GitHub Actions workflow (`app/.github/workflows/ci-cd.yml`) for:
 - Automated testing with pytest
 - Docker image building and pushing to Docker Hub
 - Triggered on push to main branch
@@ -148,9 +194,9 @@ The project includes GitHub Actions workflow (`.github/workflows/ci-cd.yml`) for
 ## Argo Workflows
 
 The project includes Argo Workflows integration:
-- `argo/hello-world.yaml` - Simple workflow example
-- `argo/quick-start-minimal.yaml` - Complete Argo installation manifest
-- Deploy with `make argo` command
+- `infra/argo/hello-world.yaml` - Simple workflow example
+- `infra/argo/quick-start-minimal.yaml` - Complete Argo installation manifest
+- Deploy with `cd infra && make argo` command
 
 ## Environment Variables
 
