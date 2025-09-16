@@ -1,12 +1,10 @@
-name: Feature Service CI/CD
+name: Features CI
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'app/feature_service/**'
-  workflow_dispatch:
+   branches:
+    - main
+  workflow_dispatch:  # Manual trigger only
 
 jobs:
   test:

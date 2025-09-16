@@ -1,12 +1,10 @@
-name: Model Service CI/CD
+name: Model CI
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'app/model_service/**'
-  workflow_dispatch:
+   branches:
+    - main
+  workflow_dispatch:  # Manual trigger only
 
 jobs:
   test:
@@ -52,6 +50,6 @@ jobs:
         context: ./app/model_service
         platforms: linux/arm64
         push: true
-        tags: r0d3r1ch25/fti_predict_learn:latest
+        tags: r0d3r1ch25/fti_model:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max

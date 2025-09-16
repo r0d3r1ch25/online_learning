@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: fti-predict-learn
-        image: r0d3r1ch25/fti_predict_learn:latest
+        image: r0d3r1ch25/fti_model:latest
         ports:
         - containerPort: 8000
         env:
