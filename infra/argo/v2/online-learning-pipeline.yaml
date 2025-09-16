@@ -6,12 +6,6 @@ metadata:
   namespace: argo
 spec:
   entrypoint: online-learning-dag
-  
-  volumes:
-  - name: repo
-    gitRepo:
-      repo: https://github.com/r0d3r1ch25/online_learning.git
-      branch: main
 
   templates:
     - name: online-learning-dag
@@ -37,23 +31,32 @@ spec:
         command: [sh, -c]
         source: |
           pip install pandas requests
-          cp /repo/pipelines/ingestion_service/data.csv /tmp/data.csv
-          python /repo/infra/argo/v2/prime_and_generate.py
+          cp /src/pipelines/ingestion_service/data.csv /tmp/data.csv
+          python /src/infra/argo/v2/prime_and_generate.py
         volumeMounts:
         - name: repo
-          mountPath: /repo
+          mountPath: /src
+      inputs:
+        artifacts:
+          - name: repo
+            path: /src
+            git:
+              repo: https://github.com/r0d3r1ch25/online_learning.git
+              branch: main
 
     - name: run-prediction
       inputs:
         artifacts:
           - name: features-data
             path: /tmp/features.json
+          - name: repo
+            path: /src
+            git:
+              repo: https://github.com/r0d3r1ch25/online_learning.git
+              branch: main
       script:
         image: python:3.9-slim
         command: [sh, -c]
         source: |
           pip install pandas requests
-          python /repo/infra/argo/v2/batch_predict.py
-        volumeMounts:
-        - name: repo
-          mountPath: /repo
+          python /src/infra/argo/v2/batch_predict.py
