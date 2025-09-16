@@ -135,6 +135,7 @@ online_learning/
 │   │   ├── services/
 │   │   │   ├── model-service.yaml     # Model service (port 30080)
 │   │   │   └── feature-service.yaml   # Feature service (port 30090)
+│   │   ├── namespace.yaml         # FTI namespace
 │   │   └── kustomization.yaml     # Kustomize configuration
 │   └── test_api.sh          # API testing script
 ├── .gitignore              # Git ignore patterns
