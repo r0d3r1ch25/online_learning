@@ -5,10 +5,10 @@ namespace: feast
 
 resources:
   - namespace.yaml
+  - feast-config.yaml
   - deployments/feast-server.yaml
   - deployments/redis.yaml
   - deployments/minio.yaml
-  - deployments/sqlite.yaml
   - services/feast-server.yaml
   - services/redis.yaml
   - services/minio.yaml

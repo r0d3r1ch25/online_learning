@@ -27,7 +27,6 @@ The project uses a k3d Kubernetes cluster with 4 namespaces:
 - **feast-server**: Feature store API server
 - **redis**: In-memory feature store
 - **minio**: S3-compatible object storage
-- **sqlite**: Metadata storage
 
 ### argo
 - **argo-server**: Workflow management UI
