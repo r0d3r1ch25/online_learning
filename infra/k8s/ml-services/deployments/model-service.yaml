@@ -1,29 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fti-features
+  name: model-service
   labels:
-    app: fti-features
+    app: model-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fti-features
+      app: model-service
   template:
     metadata:
       labels:
-        app: fti-features
+        app: model-service
     spec:
       containers:
-      - name: fti-features
-        image: r0d3r1ch25/fti_features:latest
+      - name: model-service
+        image: r0d3r1ch25/fti_model:latest
         ports:
-        - containerPort: 8001
+        - containerPort: 8000
         env:
         - name: HOST
           value: "0.0.0.0"
         - name: PORT
-          value: "8001"
+          value: "8000"
         resources:
           requests:
             memory: "256Mi"
@@ -34,12 +34,12 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8001
+            port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
-            port: 8001
+            port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5

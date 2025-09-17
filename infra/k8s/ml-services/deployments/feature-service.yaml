@@ -1,29 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fti-predict-learn
+  name: feature-service
   labels:
-    app: fti-predict-learn
+    app: feature-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fti-predict-learn
+      app: feature-service
   template:
     metadata:
       labels:
-        app: fti-predict-learn
+        app: feature-service
     spec:
       containers:
-      - name: fti-predict-learn
-        image: r0d3r1ch25/fti_model:latest
+      - name: feature-service
+        image: r0d3r1ch25/fti_features:latest
         ports:
-        - containerPort: 8000
+        - containerPort: 8001
         env:
         - name: HOST
           value: "0.0.0.0"
         - name: PORT
-          value: "8000"
+          value: "8001"
         resources:
           requests:
             memory: "256Mi"
@@ -34,12 +34,12 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8000
+            port: 8001
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
-            port: 8000
+            port: 8001
           initialDelaySeconds: 5
           periodSeconds: 5

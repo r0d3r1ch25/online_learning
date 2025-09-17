@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+resources:
+  - namespace.yaml
+  - deployments/loki.yaml
+  - deployments/grafana.yaml
+  - deployments/promtail.yaml
+  - services/loki.yaml
+  - services/grafana.yaml
+
+labels:
+  - pairs:
+      project: online-learning
+      environment: dev

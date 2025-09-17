@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feast-server
+  labels:
+    app: feast-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: feast-server
+  template:
+    metadata:
+      labels:
+        app: feast-server
+    spec:
+      containers:
+      - name: feast-server
+        image: feastdev/feature-server:latest
+        ports:
+        - containerPort: 6566
+        env:
+        - name: FEAST_REDIS_HOST
+          value: "redis"
+        - name: FEAST_REDIS_PORT
+          value: "6379"
+        - name: FEAST_S3_ENDPOINT_URL
+          value: "http://minio:9000"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

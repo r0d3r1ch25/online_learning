@@ -1,14 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: fti-features-service
+  name: feature-service
   labels:
-    app: fti-features
+    app: feature-service
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
   - port: 8001
     targetPort: 8001
-    nodePort: 30090
   selector:
-    app: fti-features
+    app: feature-service

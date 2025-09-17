@@ -1606,6 +1606,7 @@ kind: Service
 metadata:
   name: argo-server
 spec:
+  type: LoadBalancer
   ports:
   - name: web
     port: 2746

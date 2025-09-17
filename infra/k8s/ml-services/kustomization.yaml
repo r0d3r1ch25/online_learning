@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ml-services
+
+resources:
+  - namespace.yaml
+  - deployments/feature-service.yaml
+  - deployments/model-service.yaml
+  - services/feature-service.yaml
+  - services/model-service.yaml
+
+labels:
+  - pairs:
+      project: online-learning
+      environment: dev

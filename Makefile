@@ -2,10 +2,19 @@
 CLUSTER_NAME = fti-cluster
 ARGO_WORKFLOWS_VERSION = "v3.5.5"
 
-# Create k3d cluster
+# Create k3d cluster with LoadBalancer support
 .PHONY: cluster-up
 cluster-up:
-	k3d cluster create $(CLUSTER_NAME) --port "30080:30080@server:0" --port "30090:30090@server:0"
+	k3d cluster create $(CLUSTER_NAME) \
+		--port "0.0.0.0:8000:8000@loadbalancer" \
+		--port "0.0.0.0:8001:8001@loadbalancer" \
+		--port "0.0.0.0:6566:6566@loadbalancer" \
+		--port "0.0.0.0:9000:9000@loadbalancer" \
+		--port "0.0.0.0:9001:9001@loadbalancer" \
+		--port "0.0.0.0:2746:2746@loadbalancer" \
+		--port "0.0.0.0:6379:6379@loadbalancer" \
+		--port "0.0.0.0:3000:3000@loadbalancer" \
+		--k3s-arg "--disable=traefik@server:*"
 
 # Delete k3d cluster
 .PHONY: cluster-down
@@ -17,11 +26,17 @@ cluster-down:
 apply:
 	kubectl apply -k infra/k8s/
 
-# Deploy Argo Workflows
-.PHONY: argo
-argo:
-	kubectl create namespace argo || true
-	kubectl apply -n argo -f "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_WORKFLOWS_VERSION}/quick-start-minimal.yaml"
+apply-ml:
+	kubectl apply -k infra/k8s/ml-services/
+
+apply-argo:
+	kubectl apply -k infra/k8s/argo/
+
+apply-feast:
+	kubectl apply -k infra/k8s/feast/
+
+apply-monitoring:
+	kubectl apply -k infra/k8s/monitoring/
 
 # Test Argo Workflows
 .PHONY: argo-hello
