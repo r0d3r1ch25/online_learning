@@ -116,6 +116,16 @@ Once deployed, services are accessible via LoadBalancer on your machine's IP:
 4. **Monitor Logs**: Access Grafana at `http://<your-ip>:3000`
 5. **Run Workflows**: Use Argo UI at `https://<your-ip>:2746`
 
+## Troubleshooting
+
+### `feast-server` Pod Fails to Start
+
+If the `feast-server` pod is in a `CrashLoopBackOff` state, it may be due to a combination of issues. The following steps were taken to resolve the issue:
+
+1.  **Corrected the command** in `infra/k8s/feast/deployments/feast-server.yaml` to use `feast serve` instead of `feast feature-server`.
+2.  **Used an `initContainer`** to run `feast apply` to create the `registry.db` file.
+3.  **Used an `emptyDir` volume** for the `/feast` directory to make it writable.
+
 ## Development Notes
 
 - The `feature_service` and `model_service` are designed for online/incremental learning.
