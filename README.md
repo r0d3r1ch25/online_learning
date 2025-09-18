@@ -23,15 +23,18 @@ online_learning/
 │   │   ├── data.csv          # Sample dataset (1949-1960 monthly data)
 │   │   ├── service.py        # Core ingestion logic
 │   │   ├── main.py           # FastAPI application
+│   │   ├── README.md         # Service documentation
 │   │   └── tests/            # Unit tests
 │   ├── feature_service/       # Feature extraction
 │   │   ├── feature_manager.py # Time series feature engineering
 │   │   ├── service.py        # FastAPI service
+│   │   ├── README.md         # Service documentation
 │   │   └── tests/            # Unit tests
 │   └── model_service/         # Online ML models
 │       ├── model_manager.py   # Online learning algorithms
 │       ├── metrics_manager.py # Performance tracking
 │       ├── service.py        # FastAPI service
+│       ├── README.md         # Service documentation
 │       └── tests/            # Unit tests
 ├── infra/                     # Infrastructure as Code
 │   ├── k8s/                  # Kubernetes manifests
@@ -225,6 +228,14 @@ curl http://<your-ip>:8002/health  # Ingestion service
 - View Argo workflows at `https://<your-ip>:2746`
 - Check pod logs: `kubectl logs -n ml-services <pod-name>`
 
+## Service Documentation
+
+Each microservice has detailed documentation in its respective directory:
+
+- **[Ingestion Service](pipelines/ingestion_service/README.md)**: Time series data streaming API with sequential observation delivery
+- **[Feature Service](pipelines/feature_service/README.md)**: Lag feature extraction for time series with up to 12 historical values
+- **[Model Service](pipelines/model_service/README.md)**: Online machine learning with River LinearRegression and performance tracking
+
 ## Docker Images
 
 All services are automatically built and pushed to Docker Hub:
@@ -232,6 +243,49 @@ All services are automatically built and pushed to Docker Hub:
 - **fti-ingestion**: `r0d3r1ch25/fti-ingestion:latest` - Time series data streaming service
 - **fti-features**: `r0d3r1ch25/fti-features:latest` - Feature extraction service  
 - **fti-model**: `r0d3r1ch25/fti-model:latest` - Online ML training and prediction service
+
+## Current Project Status
+
+### ✅ Completed Components
+
+**Microservices (All Deployed)**
+- ✅ Ingestion Service: Streaming time series data (Port 8002)
+- ✅ Feature Service: Lag feature extraction (Port 8001) 
+- ✅ Model Service: Online ML with River (Port 8000)
+
+**Infrastructure (Kubernetes Ready)**
+- ✅ k3d cluster with LoadBalancer support
+- ✅ 4 namespaces: ml-services, feast, argo, monitoring
+- ✅ All services accessible via LoadBalancer
+- ✅ Health checks and resource limits configured
+
+**CI/CD Pipeline (Automated)**
+- ✅ GitHub Actions for all 3 services
+- ✅ Automated testing with pytest
+- ✅ Docker build/push to Docker Hub
+- ✅ Manual and path-based triggers
+
+**Workflow Orchestration**
+- ✅ Argo Workflows installed and configured
+- ✅ Online learning pipeline v1 ready
+- ✅ Workflow management UI accessible
+
+**Monitoring & Observability**
+- ✅ Grafana + Loki + Promtail stack
+- ✅ Log aggregation from all services
+- ✅ Dashboard accessible via LoadBalancer
+
+**Feature Store**
+- ✅ Feast server with Redis + MinIO
+- ✅ S3-compatible storage configured
+- ✅ Feature store API accessible
+
+### 🚀 Ready to Use
+
+1. **Deploy**: `make cluster-up && make apply`
+2. **Access**: All services available at `http://<your-ip>:port`
+3. **Monitor**: Grafana at `http://<your-ip>:3000`
+4. **Orchestrate**: Argo UI at `https://<your-ip>:2746`
 
 ## Technology Stack
 
@@ -242,4 +296,4 @@ All services are automatically built and pushed to Docker Hub:
 - **Monitoring**: Grafana + Loki + Promtail
 - **CI/CD**: GitHub Actions
 - **Container Registry**: Docker Hub
-- **Online Learning**: Incremental ML algorithms
+- **Online Learning**: River (incremental ML algorithms)
