@@ -1,0 +1,44 @@
+name: fti-ingestion
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'pipelines/ingestion_service/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd pipelines/ingestion_service
+        pip install -r requirements.txt
+    
+    - name: Run tests
+      run: |
+        cd pipelines/ingestion_service
+        pytest tests/ -v
+    
+    - name: Test Docker build
+      run: |
+        cd pipelines/ingestion_service
+        docker build -t fti-ingestion:test .
+    
+    - name: Test container run
+      run: |
+        cd pipelines/ingestion_service
+        docker run -d --name test-ingestion -p 8002:8002 fti-ingestion:test
+        sleep 5
+        curl -f http://localhost:8002/health || exit 1
+        docker stop test-ingestion
+        docker rm test-ingestion
