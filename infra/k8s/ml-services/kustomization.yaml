@@ -5,8 +5,10 @@ namespace: ml-services
 
 resources:
   - namespace.yaml
+  - deployments/ingestion-service.yaml
   - deployments/feature-service.yaml
   - deployments/model-service.yaml
+  - services/ingestion-service.yaml
   - services/feature-service.yaml
   - services/model-service.yaml
 

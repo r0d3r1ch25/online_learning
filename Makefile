@@ -8,6 +8,7 @@ cluster-up:
 	k3d cluster create $(CLUSTER_NAME) \
 		--port "0.0.0.0:8000:8000@loadbalancer" \
 		--port "0.0.0.0:8001:8001@loadbalancer" \
+		--port "0.0.0.0:8002:8002@loadbalancer" \
 		--port "0.0.0.0:6566:6566@loadbalancer" \
 		--port "0.0.0.0:9000:9000@loadbalancer" \
 		--port "0.0.0.0:9001:9001@loadbalancer" \

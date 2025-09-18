@@ -173,15 +173,21 @@ Each service has automated GitHub Actions that trigger on:
 - Builds and tests Docker container
 - Validates API endpoints
 
+#### Ingestion Service (`pipelines/ingestion_service/**`)
+- Runs pytest tests
+- Builds and tests Docker container
+- Pushes to Docker Hub: `r0d3r1ch25/fti-ingestion:latest`
+- Validates API endpoints
+
 #### Feature Service (`pipelines/feature_service/**`)
 - Runs pytest tests  
 - Builds Docker image
-- Pushes to Docker Hub: `r0d3r1ch25/fti_features:latest`
+- Pushes to Docker Hub: `r0d3r1ch25/fti-features:latest`
 
 #### Model Service (`pipelines/model_service/**`)
 - Runs pytest tests
 - Builds Docker image  
-- Pushes to Docker Hub: `r0d3r1ch25/fti_model:latest`
+- Pushes to Docker Hub: `r0d3r1ch25/fti-model:latest`
 
 ## Data Flow
 
@@ -218,6 +224,14 @@ curl http://<your-ip>:8002/health  # Ingestion service
 - Access Grafana at `http://<your-ip>:3000`
 - View Argo workflows at `https://<your-ip>:2746`
 - Check pod logs: `kubectl logs -n ml-services <pod-name>`
+
+## Docker Images
+
+All services are automatically built and pushed to Docker Hub:
+
+- **fti-ingestion**: `r0d3r1ch25/fti-ingestion:latest` - Time series data streaming service
+- **fti-features**: `r0d3r1ch25/fti-features:latest` - Feature extraction service  
+- **fti-model**: `r0d3r1ch25/fti-model:latest` - Online ML training and prediction service
 
 ## Technology Stack
 
