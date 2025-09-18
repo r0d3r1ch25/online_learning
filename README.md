@@ -1,150 +1,231 @@
-# online_learning
+# Online Learning MLOps Platform
 
-This is a repository for online learning experiments and MLOps pipeline orchestration using Argo Workflows.
+A complete MLOps platform for online learning experiments with real-time model training, feature extraction, and workflow orchestration using Kubernetes and Argo Workflows.
+
+## Architecture Overview
+
+The platform consists of three main microservices deployed on a k3d Kubernetes cluster:
+
+- **Ingestion Service** (Port 8002): Streams time series data observations one at a time
+- **Feature Service** (Port 8001): Extracts time series features from raw observations  
+- **Model Service** (Port 8000): Performs online machine learning with real-time training and prediction
 
 ## Project Structure
 
-- `pipelines/feature_service`: Microservice for time series feature extraction.
-- `pipelines/model_service`: Online machine learning service for real-time model training and prediction.
-- `pipelines/ingestion_service`: Contains `data.csv`, a dummy data source for the pipelines.
-- `infra/k8s`: Kubernetes manifests organized by namespace:
-    - `ml-services/`: Feature and model services with kustomization
-    - `argo/`: Argo Workflows with complete setup
-    - `feast/`: Feast feature store with Redis, MinIO, and SQLite
-    - `monitoring/`: Grafana, Loki, and Promtail for log monitoring
-- `infra/argo`: Argo Workflows definitions for orchestrating ML pipelines.
-    - `v1`: Contains the initial version of the online learning simulation workflow.
+```
+online_learning/
+├── .github/workflows/          # CI/CD pipelines
+│   ├── ingestion.yml          # Ingestion service CI/CD
+│   ├── features_ci.yml        # Feature service CI/CD
+│   └── model_ci.yml           # Model service CI/CD
+├── pipelines/                 # Microservices
+│   ├── ingestion_service/     # Time series data streaming
+│   │   ├── data.csv          # Sample dataset (1949-1960 monthly data)
+│   │   ├── service.py        # Core ingestion logic
+│   │   ├── main.py           # FastAPI application
+│   │   └── tests/            # Unit tests
+│   ├── feature_service/       # Feature extraction
+│   │   ├── feature_manager.py # Time series feature engineering
+│   │   ├── service.py        # FastAPI service
+│   │   └── tests/            # Unit tests
+│   └── model_service/         # Online ML models
+│       ├── model_manager.py   # Online learning algorithms
+│       ├── metrics_manager.py # Performance tracking
+│       ├── service.py        # FastAPI service
+│       └── tests/            # Unit tests
+├── infra/                     # Infrastructure as Code
+│   ├── k8s/                  # Kubernetes manifests
+│   │   ├── ml-services/      # ML microservices deployment
+│   │   ├── argo/             # Argo Workflows setup
+│   │   ├── feast/            # Feature store infrastructure
+│   │   └── monitoring/       # Observability stack
+│   └── workflows/            # Argo workflow definitions
+│       └── v1/               # Online learning pipeline v1
+└── Makefile                  # Infrastructure automation
+```
 
-## Infrastructure Overview
+## Infrastructure Components
 
-The project uses a k3d Kubernetes cluster with 4 namespaces:
+### Kubernetes Namespaces
 
-### ml-services
-- **feature-service**: Time series feature extraction API
-- **model-service**: Online ML model training and prediction
+#### ml-services
+- **ingestion-service**: Data streaming API (Port 8002)
+- **feature-service**: Time series feature extraction API (Port 8001)
+- **model-service**: Online ML training and prediction API (Port 8000)
 
-### feast
-- **feast-server**: Feature store API server
-- **redis**: In-memory feature store
-- **minio**: S3-compatible object storage
+#### feast
+- **feast-server**: Feature store API server (Port 6566)
+- **redis**: In-memory feature store (Port 6379)
+- **minio**: S3-compatible object storage (Ports 9000/9001)
 
-### argo
-- **argo-server**: Workflow management UI
+#### argo
+- **argo-server**: Workflow management UI (Port 2746)
 - **workflow-controller**: Workflow execution engine
-- Complete Argo Workflows installation
 
-### monitoring
-- **grafana**: Log visualization dashboard
+#### monitoring
+- **grafana**: Log visualization dashboard (Port 3000)
 - **loki**: Log aggregation backend
 - **promtail**: Log collection agent (DaemonSet)
 
-## Getting Started
+## Quick Start
 
-### 1. Cluster Management (using k3d)
+### 1. Cluster Setup
 
-- **Create Cluster:**
-  ```bash
-  make cluster-up
-  ```
-  This command creates a k3d cluster with LoadBalancer support and port mappings for remote access.
+```bash
+# Create k3d cluster with LoadBalancer support
+make cluster-up
 
-- **Delete Cluster:**
-  ```bash
-  make cluster-down
-  ```
-  This command deletes the k3d cluster.
+# Deploy all services
+make apply
+```
 
-### Service Endpoints (Remote Access)
+### 2. Service Endpoints
 
-Once deployed, services are accessible via LoadBalancer on your machine's IP:
+Once deployed, access services via LoadBalancer:
 
-- **Model Service**: `http://<your-ip>:8000` - ML model training and prediction
-- **Feature Service**: `http://<your-ip>:8001` - Time series feature extraction  
+- **Model Service**: `http://<your-ip>:8000` - ML training/prediction
+- **Feature Service**: `http://<your-ip>:8001` - Feature extraction
+- **Ingestion Service**: `http://<your-ip>:8002` - Data streaming
 - **Feast Server**: `http://<your-ip>:6566` - Feature store API
-- **MinIO Console**: `http://<your-ip>:9001` - Object storage dashboard (admin/password)
-- **MinIO API**: `http://<your-ip>:9000` - S3-compatible storage API
-- **Argo Server**: `https://<your-ip>:2746` - Workflow management UI
-- **Redis**: `<your-ip>:6379` - In-memory data store
-- **Grafana**: `http://<your-ip>:3000` - Log monitoring dashboard (admin/admin)
+- **MinIO Console**: `http://<your-ip>:9001` - Storage dashboard (admin/password)
+- **Argo Server**: `https://<your-ip>:2746` - Workflow management
+- **Grafana**: `http://<your-ip>:3000` - Monitoring (admin/admin)
 
-### 2. Deploying Services
+### 3. Run Online Learning Pipeline
 
-- **Deploy All Services:**
-  ```bash
-  make apply
-  ```
-  Deploys all services across ml-services, argo, and feast namespaces.
+```bash
+# Submit workflow to Argo
+argo submit -n argo infra/workflows/v1/online-learning-pipeline.yaml
 
-- **Deploy Individual Namespaces:**
-  ```bash
-  make apply-ml          # ML services only
-  make apply-argo        # Argo workflows only  
-  make apply-feast       # Feast feature store only
-  make apply-monitoring  # Monitoring stack only
-  ```
+# Monitor in Argo UI
+open https://<your-ip>:2746
+```
 
-### 3. Installing Argo Workflows
+## API Usage
 
-- **Deploy Argo Workflows:**
-  ```bash
-  make argo
-  ```
-  This command installs Argo Workflows into the `argo` Kubernetes namespace.
+### Ingestion Service API
 
-### 4. Running Workflows
+```bash
+# Get next observation (date + value)
+curl http://<your-ip>:8002/next
+# Returns: {"observation_id": 1, "input": "1949-01", "target": 112, "remaining": 143}
 
-- **Test Argo Installation (Hello World):**
-  ```bash
-  make argo-hello
-  ```
-  This runs a simple "hello world" workflow to verify your Argo setup.
+# Reset stream to beginning
+curl -X POST http://<your-ip>:8002/reset
 
-- **Run V1 Online Learning Pipeline:**
-  ```bash
-  argo submit -n argo infra/argo/v1/online-learning-pipeline.yaml
-  ```
-  This workflow simulates an online learning process:
-    - It adds observations to the `feature_service` one by one.
-    - For each observation, it requests features from the `feature_service`.
-    - It then uses these features and the actual value to perform a `predict_learn` operation on the `model_service`.
+# Check stream status
+curl http://<your-ip>:8002/status
+```
 
-## Deployment Workflow
+### Feature Service API
 
-1. **Create Cluster**: `make cluster-up`
-2. **Deploy All Services**: `make apply`
-3. **Access Services**: Use `<your-ip>:port` from your local network
-4. **Monitor Logs**: Access Grafana at `http://<your-ip>:3000`
-5. **Run Workflows**: Use Argo UI at `https://<your-ip>:2746`
+```bash
+# Extract features from observation
+curl -X POST http://<your-ip>:8001/extract \
+  -H "Content-Type: application/json" \
+  -d '{"observation_id": 1, "input": "1949-01", "target": 112}'
+```
 
-## Troubleshooting
+### Model Service API
 
-### `feast-server` Pod Fails to Start
+```bash
+# Train and predict (online learning)
+curl -X POST http://<your-ip>:8000/predict_learn \
+  -H "Content-Type: application/json" \
+  -d '{"features": {...}, "target": 112}'
 
-If the `feast-server` pod is in a `CrashLoopBackOff` state, it may be due to a combination of issues. The following steps were taken to resolve the issue:
+# Get model metrics
+curl http://<your-ip>:8000/metrics
+```
 
-1.  **Corrected the command** in `infra/k8s/feast/deployments/feast-server.yaml` to use `feast serve` instead of `feast feature-server`.
-2.  **Used an `initContainer`** to run `feast apply` to create the `registry.db` file.
-3.  **Used an `emptyDir` volume** for the `/feast` directory to make it writable.
+## Development Commands
+
+### Cluster Management
+```bash
+make cluster-up      # Create k3d cluster
+make cluster-down    # Delete cluster
+```
+
+### Deployment
+```bash
+make apply           # Deploy all services
+make apply-ml        # Deploy ML services only
+make apply-argo      # Deploy Argo only
+make apply-feast     # Deploy Feast only
+make apply-monitoring # Deploy monitoring only
+```
+
+### Workflow Testing
+```bash
+make argo-hello      # Test Argo installation
+```
 
 ## CI/CD Pipeline
 
-The project includes GitHub Actions workflows for automated testing and deployment:
-
 ### Automated Workflows
 
-- **Ingestion Service**: Triggers on changes to `pipelines/ingestion_service/**`
-- **Feature Service**: Triggers on changes to `pipelines/feature_service/**`  
-- **Model Service**: Triggers on changes to `pipelines/model_service/**`
+Each service has automated GitHub Actions that trigger on:
+- **Push to main** with changes in service directory
+- **Manual trigger** via GitHub Actions UI
 
-Each workflow:
-- Runs tests with pytest
-- Builds and tests Docker containers
-- Pushes images to Docker Hub (feature and model services)
-- Can be triggered manually via GitHub Actions UI
+#### Ingestion Service (`pipelines/ingestion_service/**`)
+- Runs pytest tests
+- Builds and tests Docker container
+- Validates API endpoints
 
-## Development Notes
+#### Feature Service (`pipelines/feature_service/**`)
+- Runs pytest tests  
+- Builds Docker image
+- Pushes to Docker Hub: `r0d3r1ch25/fti_features:latest`
 
-- The `feature_service` and `model_service` are designed for online/incremental learning.
-- The `v1` pipeline demonstrates a basic end-to-end online learning simulation.
-- All services use LoadBalancer for remote network access.
-- Promtail collects logs from all namespaces for centralized monitoring.
+#### Model Service (`pipelines/model_service/**`)
+- Runs pytest tests
+- Builds Docker image  
+- Pushes to Docker Hub: `r0d3r1ch25/fti_model:latest`
+
+## Data Flow
+
+1. **Ingestion Service** streams time series observations (date, value pairs)
+2. **Feature Service** extracts time series features from raw observations
+3. **Model Service** performs online learning using features and targets
+4. **Argo Workflows** orchestrate the end-to-end pipeline
+5. **Monitoring Stack** tracks logs and metrics across all services
+
+## Dataset
+
+The platform uses a sample time series dataset (`data.csv`) with monthly observations from 1949-1960:
+- **Input**: Date strings (YYYY-MM format)
+- **Target**: Integer values representing time series measurements
+- **Total**: 144 observations for online learning simulation
+
+## Troubleshooting
+
+### Feast Server Issues
+If `feast-server` pod fails to start:
+1. Check `initContainer` runs `feast apply` successfully
+2. Verify `emptyDir` volume is writable
+3. Ensure correct command: `feast serve`
+
+### Service Connectivity
+```bash
+# Test service health
+curl http://<your-ip>:8000/health  # Model service
+curl http://<your-ip>:8001/health  # Feature service  
+curl http://<your-ip>:8002/health  # Ingestion service
+```
+
+### Logs and Monitoring
+- Access Grafana at `http://<your-ip>:3000`
+- View Argo workflows at `https://<your-ip>:2746`
+- Check pod logs: `kubectl logs -n ml-services <pod-name>`
+
+## Technology Stack
+
+- **Container Orchestration**: Kubernetes (k3d)
+- **Workflow Engine**: Argo Workflows
+- **API Framework**: FastAPI
+- **Feature Store**: Feast + Redis + MinIO
+- **Monitoring**: Grafana + Loki + Promtail
+- **CI/CD**: GitHub Actions
+- **Container Registry**: Docker Hub
+- **Online Learning**: Incremental ML algorithms
