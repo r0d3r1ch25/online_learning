@@ -35,8 +35,8 @@ class DataIngestionService:
         
         response = {
             "observation_id": self.current_index + 1,
-            "input": observation["input"],
-            "target": observation["target"],
+            "input": float(observation["input"]),
+            "target": float(observation["target"]),
             "remaining": len(self.data) - self.current_index - 1
         }
         

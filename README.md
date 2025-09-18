@@ -126,6 +126,22 @@ If the `feast-server` pod is in a `CrashLoopBackOff` state, it may be due to a c
 2.  **Used an `initContainer`** to run `feast apply` to create the `registry.db` file.
 3.  **Used an `emptyDir` volume** for the `/feast` directory to make it writable.
 
+## CI/CD Pipeline
+
+The project includes GitHub Actions workflows for automated testing and deployment:
+
+### Automated Workflows
+
+- **Ingestion Service**: Triggers on changes to `pipelines/ingestion_service/**`
+- **Feature Service**: Triggers on changes to `pipelines/feature_service/**`  
+- **Model Service**: Triggers on changes to `pipelines/model_service/**`
+
+Each workflow:
+- Runs tests with pytest
+- Builds and tests Docker containers
+- Pushes images to Docker Hub (feature and model services)
+- Can be triggered manually via GitHub Actions UI
+
 ## Development Notes
 
 - The `feature_service` and `model_service` are designed for online/incremental learning.
