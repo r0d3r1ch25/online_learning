@@ -1,4 +1,4 @@
-name: fti-ingestion
+name: Ingestion CI
 
 on:
   push:

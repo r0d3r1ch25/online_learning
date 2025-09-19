@@ -27,18 +27,6 @@ cluster-down:
 apply:
 	kubectl apply -k infra/k8s/
 
-apply-ml:
-	kubectl apply -k infra/k8s/ml-services/
-
-apply-argo:
-	kubectl apply -k infra/k8s/argo/
-
-apply-feast:
-	kubectl apply -k infra/k8s/feast/
-
-apply-monitoring:
-	kubectl apply -k infra/k8s/monitoring/
-
 # Test Argo Workflows
 .PHONY: argo-hello
 argo-hello:

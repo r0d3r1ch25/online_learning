@@ -131,15 +131,46 @@ curl -X POST http://<your-ip>:8001/extract \
 
 ### Model Service API
 
+**Stateless online ML service supporting up to 12 input features (in_1 to in_12) with build-time configuration.**
+
 ```bash
-# Train and predict (online learning)
+# Train model with features (3 inputs)
+curl -X POST http://<your-ip>:8000/train \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0}, "target": 130.0}'
+
+# Train with all 12 inputs
+curl -X POST http://<your-ip>:8000/train \
+  -H "Content-Type: application/json" \
+  -d '{
+    "features": {
+      "in_1": 125.0, "in_2": 120.0, "in_3": 115.0, "in_4": 110.0,
+      "in_5": 105.0, "in_6": 100.0, "in_7": 95.0, "in_8": 90.0,
+      "in_9": 85.0, "in_10": 80.0, "in_11": 75.0, "in_12": 70.0
+    },
+    "target": 130.0
+  }'
+
+# Predict (fixed 3-step horizon, no horizon parameter needed)
+curl -X POST http://<your-ip>:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}}'
+
+# Online learning (predict then learn)
 curl -X POST http://<your-ip>:8000/predict_learn \
   -H "Content-Type: application/json" \
-  -d '{"features": {...}, "target": 112}'
+  -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
 
-# Get model metrics
+# Get comprehensive model performance metrics (MAE, MSE, RMSE)
 curl http://<your-ip>:8000/metrics
 ```
+
+**Key Features:**
+- **Up to 12 Inputs**: in_1, in_2, ..., in_12 (missing features auto-filled with 0.0)
+- **Build-Time Config**: FORECAST_HORIZON=3, NUM_FEATURES=12 (rebuild to change)
+- **Input Validation**: Unknown features trigger warnings but don't fail
+- **Performance Tracking**: Single /metrics endpoint with MAE, MSE, RMSE
+- **Stateless Design**: No memory management, features provided externally
 
 ## Development Commands
 
@@ -234,7 +265,13 @@ Each microservice has detailed documentation in its respective directory:
 
 - **[Ingestion Service](pipelines/ingestion_service/README.md)**: Time series data streaming API with sequential observation delivery
 - **[Feature Service](pipelines/feature_service/README.md)**: Lag feature extraction for time series with up to 12 historical values
-- **[Model Service](pipelines/model_service/README.md)**: Online machine learning with River LinearRegression and performance tracking
+- **[Model Service](pipelines/model_service/README.md)**: Stateless online ML service with River LinearRegression
+  - **Input Features**: Up to 12 generic inputs (in_1 to in_12) with automatic validation
+  - **Forecast Horizon**: Fixed 3-step predictions (configurable at build time)
+  - **Performance Metrics**: Comprehensive MAE, MSE, RMSE tracking via /metrics endpoint
+  - **Online Learning**: Real-time predict-then-learn workflow with metrics tracking
+  - **Build-Time Config**: FORECAST_HORIZON and NUM_FEATURES set during Docker build
+  - **Robust Validation**: Missing features auto-filled, unknown features warned but ignored
 
 ## Docker Images
 
