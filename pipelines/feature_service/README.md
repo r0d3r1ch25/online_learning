@@ -103,7 +103,7 @@ PYTHONPATH=. pytest tests/ -v
 ### Docker
 ```bash
 docker build -t ml-features .
-docker run -p 8001:8001 fti-features
+docker run -p 8001:8001 ml-features
 ```
 
 ## Deployment

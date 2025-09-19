@@ -8,7 +8,13 @@ from typing import Dict, List
 from model_manager import ModelManager
 from metrics_manager import MetricsManager
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
 
 app = FastAPI(title="Online ML API")
 

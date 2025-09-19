@@ -390,11 +390,14 @@ docker build -t ml-model \
 
 ### Test Deployed Service
 ```bash
-# Make script executable
-chmod +x infra/test_model_api.sh
+# Test locally
+python3 infra/test_model_api.py
 
-# Run comprehensive tests (includes 12 inputs and metrics examples)
-./infra/test_model_api.sh
+# Test deployed service
+python3 infra/test_model_api.py http://<your-ip>:8000
+
+# Test k3d cluster
+python3 infra/test_model_api.py http://localhost:8000
 ```
 
 ## Architecture

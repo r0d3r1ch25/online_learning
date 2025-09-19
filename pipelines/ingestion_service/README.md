@@ -79,7 +79,7 @@ pytest tests/ -v
 ### Docker
 ```bash
 docker build -t ml-ingestion .
-docker run -p 8002:8002 fti-ingestion
+docker run -p 8002:8002 ml-ingestion
 ```
 
 ## Deployment

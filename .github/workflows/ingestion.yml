@@ -32,12 +32,12 @@ jobs:
     - name: Test Docker build
       run: |
         cd pipelines/ingestion_service
-        docker build -t fti-ingestion:test .
+        docker build -t ml-ingestion:test .
     
     - name: Test container run
       run: |
         cd pipelines/ingestion_service
-        docker run -d --name test-ingestion -p 8002:8002 fti-ingestion:test
+        docker run -d --name test-ingestion -p 8002:8002 ml-ingestion:test
         sleep 5
         curl -f http://localhost:8002/health || exit 1
         docker stop test-ingestion

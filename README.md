@@ -189,9 +189,13 @@ make apply-feast     # Deploy Feast only
 make apply-monitoring # Deploy monitoring only
 ```
 
-### Workflow Testing
+### Service Testing
 ```bash
-make argo-hello      # Test Argo installation
+# Test model service (locally or deployed)
+python3 infra/test_model_api.py [url]
+
+# Test Argo installation
+make argo-hello
 ```
 
 ## CI/CD Pipeline
