@@ -8,8 +8,11 @@ resources:
   - deployments/loki.yaml
   - deployments/grafana.yaml
   - deployments/promtail.yaml
+  - deployments/prometheus.yaml
   - services/loki.yaml
   - services/grafana.yaml
+  - services/prometheus.yaml
+  - prometheus-config.yaml
 
 labels:
   - pairs:

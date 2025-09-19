@@ -137,7 +137,24 @@ def main():
     # 16. Get comprehensive metrics
     metrics = test_endpoint("16. Get Model Performance Metrics", "GET", "/metrics")
     
-    # 17. Validation summary
+    # 17. Test Prometheus metrics endpoint
+    print("\n17. Test Prometheus Metrics Endpoint:")
+    try:
+        response = requests.get(f"{API_URL}/metrics/prometheus")
+        print(f"Status: {response.status_code}")
+        if response.status_code == 200:
+            lines = response.text.split('\n')[:10]  # Show first 10 lines
+            print("Prometheus metrics (first 10 lines):")
+            for line in lines:
+                if line.strip():
+                    print(f"  {line}")
+            print("  ... (truncated)")
+        else:
+            print(f"Error: {response.text}")
+    except Exception as e:
+        print(f"Request failed: {e}")
+    
+    # 18. Validation summary
     print("\n=== Test Summary ===")
     if metrics and "default" in metrics:
         m = metrics["default"]

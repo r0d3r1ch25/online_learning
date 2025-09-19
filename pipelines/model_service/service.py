@@ -116,3 +116,42 @@ def feedback(data: dict):
 def metrics():
     """Get comprehensive model performance metrics and statistics"""
     return metrics_manager.get_metrics()
+
+@app.get("/metrics/prometheus")
+def prometheus_metrics():
+    """Prometheus-compatible metrics endpoint"""
+    metrics_data = metrics_manager.get_metrics()
+    
+    if "message" in metrics_data:
+        return "# No predictions available yet\n", {"Content-Type": "text/plain"}
+    
+    prometheus_output = []
+    
+    for series_id, data in metrics_data.items():
+        # Model performance metrics
+        prometheus_output.append(f"# HELP ml_model_mae Mean Absolute Error")
+        prometheus_output.append(f"# TYPE ml_model_mae gauge")
+        prometheus_output.append(f'ml_model_mae{{series="{series_id}"}} {data.get("mae", 0)}')
+        
+        prometheus_output.append(f"# HELP ml_model_mse Mean Squared Error")
+        prometheus_output.append(f"# TYPE ml_model_mse gauge")
+        prometheus_output.append(f'ml_model_mse{{series="{series_id}"}} {data.get("mse", 0)}')
+        
+        prometheus_output.append(f"# HELP ml_model_rmse Root Mean Squared Error")
+        prometheus_output.append(f"# TYPE ml_model_rmse gauge")
+        prometheus_output.append(f'ml_model_rmse{{series="{series_id}"}} {data.get("rmse", 0)}')
+        
+        prometheus_output.append(f"# HELP ml_model_predictions_total Total number of predictions")
+        prometheus_output.append(f"# TYPE ml_model_predictions_total counter")
+        prometheus_output.append(f'ml_model_predictions_total{{series="{series_id}"}} {data.get("count", 0)}')
+        
+        prometheus_output.append(f"# HELP ml_model_last_prediction Last prediction value")
+        prometheus_output.append(f"# TYPE ml_model_last_prediction gauge")
+        prometheus_output.append(f'ml_model_last_prediction{{series="{series_id}"}} {data.get("last_prediction", 0)}')
+        
+        prometheus_output.append(f"# HELP ml_model_last_error Last prediction error")
+        prometheus_output.append(f"# TYPE ml_model_last_error gauge")
+        prometheus_output.append(f'ml_model_last_error{{series="{series_id}"}} {data.get("last_error", 0)}')
+    
+    from fastapi import Response
+    return Response(content="\n".join(prometheus_output) + "\n", media_type="text/plain")

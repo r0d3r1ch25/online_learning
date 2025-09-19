@@ -69,6 +69,7 @@ online_learning/
 - **grafana**: Log visualization dashboard (Port 3000)
 - **loki**: Log aggregation backend
 - **promtail**: Log collection agent (DaemonSet)
+- **prometheus**: Metrics collection and monitoring (Port 9090)
 
 ## Quick Start
 
@@ -93,6 +94,7 @@ Once deployed, access services via LoadBalancer:
 - **MinIO Console**: `http://<your-ip>:9001` - Storage dashboard (admin/password)
 - **Argo Server**: `https://<your-ip>:2746` - Workflow management
 - **Grafana**: `http://<your-ip>:3000` - Monitoring (admin/admin)
+- **Prometheus**: `http://<your-ip>:9090` - Metrics collection and monitoring
 
 ### 3. Run Online Learning Pipeline
 
