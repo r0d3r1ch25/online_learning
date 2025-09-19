@@ -65,6 +65,6 @@ jobs:
         context: ./pipelines/ingestion_service
         platforms: linux/arm64
         push: true
-        tags: r0d3r1ch25/fti-ingestion:latest
+        tags: r0d3r1ch25/ml-ingestion:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max

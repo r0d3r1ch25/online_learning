@@ -51,6 +51,6 @@ jobs:
         context: ./pipelines/model_service
         platforms: linux/arm64
         push: true
-        tags: r0d3r1ch25/fti-model:latest
+        tags: r0d3r1ch25/ml-model:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max

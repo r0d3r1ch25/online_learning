@@ -380,10 +380,10 @@ PYTHONPATH=. pytest tests/ -v
 ### Docker Build
 ```bash
 # Default configuration (3 horizon, 12 features)
-docker build -t fti-model .
+docker build -t ml-model .
 
 # Custom configuration
-docker build -t fti-model \
+docker build -t ml-model \
   --build-arg FORECAST_HORIZON=5 \
   --build-arg NUM_FEATURES=8 .
 ```
@@ -432,7 +432,7 @@ chmod +x infra/test_model_api.sh
 
 ## Deployment
 
-- **Docker Image**: `r0d3r1ch25/fti-model:latest`
+- **Docker Image**: `r0d3r1ch25/ml-model:latest`
 - **Kubernetes Port**: 8000
 - **LoadBalancer Access**: `http://<your-ip>:8000`
 - **CI/CD Pipeline**: Automated build/push on changes to `pipelines/model_service/**`

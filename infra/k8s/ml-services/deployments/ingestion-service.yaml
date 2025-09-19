@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: ingestion-service
-        image: r0d3r1ch25/fti-ingestion:latest
+        image: r0d3r1ch25/ml-ingestion:latest
         ports:
         - containerPort: 8002
         env:

@@ -102,13 +102,13 @@ PYTHONPATH=. pytest tests/ -v
 
 ### Docker
 ```bash
-docker build -t fti-features .
+docker build -t ml-features .
 docker run -p 8001:8001 fti-features
 ```
 
 ## Deployment
 
-- **Docker Image**: `r0d3r1ch25/fti-features:latest`
+- **Docker Image**: `r0d3r1ch25/ml-features:latest`
 - **Kubernetes Port**: 8001
 - **LoadBalancer**: Accessible at `http://<your-ip>:8001`
 - **CI/CD**: Automated build/push on changes to `pipelines/feature_service/**`

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: feature-service
-        image: r0d3r1ch25/fti-features:latest
+        image: r0d3r1ch25/ml-features:latest
         ports:
         - containerPort: 8001
         env:

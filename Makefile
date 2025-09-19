@@ -1,5 +1,5 @@
 # Variables
-CLUSTER_NAME = fti-cluster
+CLUSTER_NAME = ml-cluster
 ARGO_WORKFLOWS_VERSION = "v3.5.5"
 
 # Create k3d cluster with LoadBalancer support

@@ -210,18 +210,18 @@ Each service has automated GitHub Actions that trigger on:
 #### Ingestion Service (`pipelines/ingestion_service/**`)
 - Runs pytest tests
 - Builds and tests Docker container
-- Pushes to Docker Hub: `r0d3r1ch25/fti-ingestion:latest`
+- Pushes to Docker Hub: `r0d3r1ch25/ml-ingestion:latest`
 - Validates API endpoints
 
 #### Feature Service (`pipelines/feature_service/**`)
 - Runs pytest tests  
 - Builds Docker image
-- Pushes to Docker Hub: `r0d3r1ch25/fti-features:latest`
+- Pushes to Docker Hub: `r0d3r1ch25/ml-features:latest`
 
 #### Model Service (`pipelines/model_service/**`)
 - Runs pytest tests
 - Builds Docker image  
-- Pushes to Docker Hub: `r0d3r1ch25/fti-model:latest`
+- Pushes to Docker Hub: `r0d3r1ch25/ml-model:latest`
 
 ## Data Flow
 
@@ -277,9 +277,9 @@ Each microservice has detailed documentation in its respective directory:
 
 All services are automatically built and pushed to Docker Hub:
 
-- **fti-ingestion**: `r0d3r1ch25/fti-ingestion:latest` - Time series data streaming service
-- **fti-features**: `r0d3r1ch25/fti-features:latest` - Feature extraction service  
-- **fti-model**: `r0d3r1ch25/fti-model:latest` - Online ML training and prediction service
+- **ml-ingestion**: `r0d3r1ch25/ml-ingestion:latest` - Time series data streaming service
+- **ml-features**: `r0d3r1ch25/ml-features:latest` - Feature extraction service  
+- **ml-model**: `r0d3r1ch25/ml-model:latest` - Online ML training and prediction service
 
 ## Current Project Status
 
