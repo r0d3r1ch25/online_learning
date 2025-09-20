@@ -37,25 +37,25 @@ def main():
     test_endpoint("2. Service Info", "GET", "/info")
     
     # 3. Extract features with first value
-    test_endpoint("3. Extract Features (First Value)", "POST", "/extract", {
+    test_endpoint("3. Add Observation (First Value)", "POST", "/add", {
         "series_id": "test_series",
         "value": 100.0
     })
     
-    # 4. Extract features with second value
-    test_endpoint("4. Extract Features (Second Value)", "POST", "/extract", {
+    # 4. Add second observation
+    test_endpoint("4. Add Observation (Second Value)", "POST", "/add", {
         "series_id": "test_series", 
         "value": 105.0
     })
     
-    # 5. Extract features with third value
-    test_endpoint("5. Extract Features (Third Value)", "POST", "/extract", {
+    # 5. Add third observation
+    test_endpoint("5. Add Observation (Third Value)", "POST", "/add", {
         "series_id": "test_series",
         "value": 110.0
     })
     
-    # 6. Extract features with fourth value (should show lag pattern)
-    result = test_endpoint("6. Extract Features (Fourth Value - Show Lags)", "POST", "/extract", {
+    # 6. Add fourth observation (should show lag pattern)
+    result = test_endpoint("6. Add Observation (Fourth Value - Show Lags)", "POST", "/add", {
         "series_id": "test_series",
         "value": 115.0
     })
@@ -71,7 +71,7 @@ def main():
         print(f"Available lags: {result.get('available_lags')}")
     
     # 8. Test different series
-    test_endpoint("8. Extract Features (Different Series)", "POST", "/extract", {
+    test_endpoint("8. Add Observation (Different Series)", "POST", "/add", {
         "series_id": "another_series",
         "value": 200.0
     })
@@ -86,7 +86,7 @@ def main():
     print("\n11. Testing All 12 Lags:")
     values = [120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175]
     for i, value in enumerate(values, 5):
-        result = test_endpoint(f"  Extract {i}", "POST", "/extract", {
+        result = test_endpoint(f"  Add {i}", "POST", "/add", {
             "series_id": "full_series",
             "value": value
         })

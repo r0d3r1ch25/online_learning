@@ -37,9 +37,9 @@ async def get_info():
         "series_info": feature_manager.get_series_info()
     }
 
-@app.post("/extract", response_model=ExtractResponse)
-async def extract_features(request: ExtractRequest):
-    """Extract lag features from current value, return model-ready format."""
+@app.post("/add", response_model=ExtractResponse)
+async def add_observation(request: ExtractRequest):
+    """Add observation and extract lag features, return model-ready format."""
     try:
         # Extract features in model-ready format (in_1 to in_12)
         features = feature_manager.extract_features(request.series_id, request.value)

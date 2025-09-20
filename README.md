@@ -126,8 +126,8 @@ curl http://<your-ip>:8002/status
 ### Feature Service API
 
 ```bash
-# Extract lag features from time series value
-curl -X POST http://<your-ip>:8001/extract \
+# Add observation and extract lag features
+curl -X POST http://<your-ip>:8001/add \
   -H "Content-Type: application/json" \
   -d '{"series_id": "default", "value": 125.0}'
 # Returns: {"features": {"in_1": 125.0, "in_2": 120.0, ...}, "available_lags": 2}
@@ -166,18 +166,19 @@ curl -X POST http://<your-ip>:8000/predict_learn \
   -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
 
 # Get comprehensive model performance metrics (MAE, MSE, RMSE)
-curl http://<your-ip>:8000/metrics
+curl http://<your-ip>:8000/model_metrics
 
 # Get Prometheus-compatible metrics for monitoring
-curl http://<your-ip>:8000/metrics/prometheus
+curl http://<your-ip>:8000/metrics
 ```
 
 **Key Features:**
-- **Up to 12 Inputs**: in_1, in_2, ..., in_12 (missing features auto-filled with 0.0)
+- **Up to 12 Inputs**: in_1, in_2, ..., in_12 (missing features handled by imputation)
 - **Build-Time Config**: FORECAST_HORIZON=3, NUM_FEATURES=12 (rebuild to change)
 - **Input Validation**: Unknown features trigger warnings but don't fail
-- **Performance Tracking**: /metrics endpoint with MAE, MSE, RMSE + Prometheus integration
-- **Prometheus Ready**: /metrics/prometheus endpoint for monitoring stack integration
+- **Performance Tracking**: /model_metrics endpoint with MAE, MSE, RMSE
+- **Prometheus Ready**: /metrics endpoint for monitoring stack integration
+- **Imputation**: Missing features handled by River StatImputer with Mean strategy
 - **Stateless Design**: No memory management, features provided externally
 
 ## Development Commands
@@ -382,9 +383,9 @@ curl http://<your-ip>:8001/health
 curl http://<your-ip>:8001/info
 ```
 
-**Extract Lag Features (Model-Ready Format)**
+**Add Observation and Extract Features (Model-Ready Format)**
 ```bash
-curl -X POST http://<your-ip>:8001/extract \
+curl -X POST http://<your-ip>:8001/add \
   -H "Content-Type: application/json" \
   -d '{"series_id": "default", "value": 125.0}'
 ```
@@ -427,14 +428,14 @@ curl -X POST http://<your-ip>:8000/predict_learn \
   -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
 ```
 
-**Get Performance Metrics**
+**Get Model Performance Metrics**
 ```bash
-curl http://<your-ip>:8000/metrics
+curl http://<your-ip>:8000/model_metrics
 ```
 
 **Get Prometheus Metrics**
 ```bash
-curl http://<your-ip>:8000/metrics/prometheus
+curl http://<your-ip>:8000/metrics
 ```
 
 **Submit Feedback**

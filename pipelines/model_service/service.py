@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import Dict, List
 from model_manager import ModelManager
 from metrics_manager import MetricsManager
+from river import impute
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,7 +23,8 @@ app = FastAPI(title="Online ML API")
 FORECAST_HORIZON = int(os.getenv("FORECAST_HORIZON", "3"))
 NUM_FEATURES = int(os.getenv("NUM_FEATURES", "12"))
 
-# Models
+# Models and imputation
+imputer = impute.StatImputer(impute.Mean())
 model_manager = ModelManager()
 metrics_manager = MetricsManager()
 
@@ -89,13 +91,16 @@ def _validate_features(features: Dict[str, float]) -> Dict[str, float]:
         else:
             validated[key] = features[key]
     
-    # Fill missing inputs with 0.0
+    # Use imputation for missing features
     for i in range(1, NUM_FEATURES + 1):
         input_key = f"in_{i}"
         if input_key not in validated:
-            validated[input_key] = 0.0
+            validated[input_key] = None  # Will be imputed
     
-    return validated
+    # Apply imputation
+    imputed_features = imputer.transform_one(validated)
+    
+    return imputed_features
 
 @app.post("/predict_learn")
 def predict_learn(request: PredictLearnRequest):
@@ -112,12 +117,12 @@ def predict_learn(request: PredictLearnRequest):
 def feedback(data: dict):
     return {"message": "Feedback received successfully"}
 
-@app.get("/metrics")
-def metrics():
+@app.get("/model_metrics")
+def model_metrics():
     """Get comprehensive model performance metrics and statistics"""
     return metrics_manager.get_metrics()
 
-@app.get("/metrics/prometheus")
+@app.get("/metrics")
 def prometheus_metrics():
     """Prometheus-compatible metrics endpoint"""
     metrics_data = metrics_manager.get_metrics()

@@ -13,6 +13,7 @@ The Feature Service processes time series observations and extracts lag features
 - **Multiple Series Support**: Handles multiple independent time series
 - **Stateful Processing**: Maintains internal buffers for lag calculation
 - **Zero-Fill**: Missing lags are automatically filled with 0.0
+- **Future Redis Integration**: Prepared for external memory storage for pod crash recovery
 
 ## API Endpoints
 
@@ -26,9 +27,9 @@ GET /health
 GET /info
 ```
 
-### Extract Features
+### Add Observation and Extract Features
 ```bash
-POST /extract
+POST /add
 {
   "series_id": "default",
   "value": 125.0
@@ -72,8 +73,8 @@ Missing lags are filled with `0.0`.
 ```python
 import requests
 
-# Extract features from new observation
-response = requests.post("http://localhost:8001/extract", json={
+# Add observation and extract features
+response = requests.post("http://localhost:8001/add", json={
     "series_id": "my_series",
     "value": 150.0
 })
@@ -112,6 +113,9 @@ python3 ../../infra/test_features_api.py
 
 # Test deployed service
 python3 ../../infra/test_features_api.py http://<your-ip>:8001
+
+# Test integration with model service
+bash ../../infra/test_features_model.sh
 ```
 
 ## Configuration
@@ -119,6 +123,7 @@ python3 ../../infra/test_features_api.py http://<your-ip>:8001
 - **Max Lags**: 12 (configurable in LagFeatureManager)
 - **Port**: 8001
 - **Output Format**: in_1 to in_12 (model-ready)
+- **Memory**: Internal deque buffers (future Redis integration planned)
 
 ## Integration
 
@@ -144,7 +149,7 @@ Receives observations from ingestion service and processes them:
 observation = {"value": 125.0, "series_id": "default"}
 
 # To feature service
-requests.post("http://feature-service:8001/extract", json=observation)
+requests.post("http://feature-service:8001/add", json=observation)
 ```
 
 ## Deployment
@@ -166,4 +171,4 @@ Input: Time Series Value
     Output: in_1 to in_12
 ```
 
-The service maintains internal state for each time series to calculate lag features efficiently.
+The service maintains internal state for each time series to calculate lag features efficiently. Future versions will integrate with Redis for persistent memory storage.

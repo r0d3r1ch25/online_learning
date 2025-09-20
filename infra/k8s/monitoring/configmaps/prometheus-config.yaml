@@ -16,6 +16,6 @@ data:
       - job_name: 'ml-model-service'
         static_configs:
           - targets: ['model-service.ml-services.svc.cluster.local:8000']
-        metrics_path: '/metrics/prometheus'
+        metrics_path: '/metrics'
         scrape_interval: 30s
         scrape_timeout: 10s
