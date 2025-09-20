@@ -105,7 +105,8 @@ def test_negative_values():
     response = client.post("/add", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert data["features"]["in_1"] == -50.0
+    assert data["features"]["in_1"] == 0.0  # No previous observations
+    assert data["target"] == -50.0  # Current observation as target
 
 def test_zero_values():
     payload = {
@@ -115,7 +116,8 @@ def test_zero_values():
     response = client.post("/add", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert data["features"]["in_1"] == 0.0
+    assert data["features"]["in_1"] == 0.0  # No previous observations
+    assert data["target"] == 0.0  # Current observation as target
 
 def test_large_values():
     payload = {
@@ -125,7 +127,8 @@ def test_large_values():
     response = client.post("/add", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert data["features"]["in_1"] == 999999.99
+    assert data["features"]["in_1"] == 0.0  # No previous observations
+    assert data["target"] == 999999.99  # Current observation as target
 
 def test_default_series_id():
     payload = {
