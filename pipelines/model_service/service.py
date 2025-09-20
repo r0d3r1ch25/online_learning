@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Dict, List
 from model_manager import ModelManager
 from metrics_manager import MetricsManager
-from river import preprocessing, stats
+from river import stats
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,8 +23,8 @@ app = FastAPI(title="Online ML API")
 FORECAST_HORIZON = int(os.getenv("FORECAST_HORIZON", "3"))
 NUM_FEATURES = int(os.getenv("NUM_FEATURES", "12"))
 
-# Models and imputation
-imputer = preprocessing.StatImputer(('default', stats.Mean()))
+# Models and simple imputation
+mean_imputer = stats.Mean()
 model_manager = ModelManager()
 metrics_manager = MetricsManager()
 
@@ -91,16 +91,20 @@ def _validate_features(features: Dict[str, float]) -> Dict[str, float]:
         else:
             validated[key] = features[key]
     
-    # Use imputation for missing features
+    # Simple mean imputation for missing features
+    # Update mean with available values
+    for value in validated.values():
+        mean_imputer.update(value)
+    
+    # Fill missing features with current mean or 0.0 if no data
+    mean_value = mean_imputer.get() if mean_imputer.n > 0 else 0.0
+    
     for i in range(1, NUM_FEATURES + 1):
         input_key = f"in_{i}"
         if input_key not in validated:
-            validated[input_key] = None  # Will be imputed
+            validated[input_key] = mean_value
     
-    # Apply imputation
-    imputed_features = imputer.transform_one(validated)
-    
-    return imputed_features
+    return validated
 
 @app.post("/predict_learn")
 def predict_learn(request: PredictLearnRequest):
