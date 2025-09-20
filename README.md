@@ -203,6 +203,12 @@ make apply-monitoring # Deploy monitoring only
 # Test monitoring stack + model service (comprehensive)
 python3 infra/test_model_api.py [url]
 
+# Test feature service independently
+python3 infra/test_features_api.py [url]
+
+# Test feature + model service integration
+bash infra/test_features_model.sh
+
 # Test Argo installation
 make argo-hello
 ```
@@ -300,10 +306,11 @@ Each microservice has detailed documentation in its respective directory:
 - **[Model Service](pipelines/model_service/README.md)**: Stateless online ML service with River LinearRegression
   - **Input Features**: Up to 12 generic inputs (in_1 to in_12) with automatic validation
   - **Forecast Horizon**: Fixed 3-step predictions (configurable at build time)
-  - **Performance Metrics**: Comprehensive MAE, MSE, RMSE tracking via /metrics endpoint
+  - **Performance Metrics**: Comprehensive MAE, MSE, RMSE tracking via /model_metrics endpoint
+  - **Prometheus Integration**: /metrics endpoint for monitoring stack integration
   - **Online Learning**: Real-time predict-then-learn workflow with metrics tracking
   - **Build-Time Config**: FORECAST_HORIZON and NUM_FEATURES set during Docker build
-  - **Robust Validation**: Missing features auto-filled, unknown features warned but ignored
+  - **Imputation**: Missing features handled by River StatImputer, unknown features warned but ignored
 
 ## Docker Images
 

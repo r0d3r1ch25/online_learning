@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Dict, List
 from model_manager import ModelManager
 from metrics_manager import MetricsManager
-from river import impute
+from river import preprocessing, stats
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,7 +24,7 @@ FORECAST_HORIZON = int(os.getenv("FORECAST_HORIZON", "3"))
 NUM_FEATURES = int(os.getenv("NUM_FEATURES", "12"))
 
 # Models and imputation
-imputer = impute.StatImputer(impute.Mean())
+imputer = preprocessing.StatImputer(('default', stats.Mean()))
 model_manager = ModelManager()
 metrics_manager = MetricsManager()
 

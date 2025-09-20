@@ -36,7 +36,7 @@ def test_train_valid_features():
     assert "successfully" in data["message"]
 
 def test_train_missing_features():
-    """Test training with incomplete features - should fill with 0.0"""
+    """Test training with incomplete features - should use imputation"""
     payload = {
         "features": {"in_1": 125.0},  # Missing in_2, in_3, etc.
         "target": 130.0
@@ -82,7 +82,7 @@ def test_predict_valid_features():
         assert isinstance(item["value"], (int, float))
 
 def test_predict_empty_features():
-    """Test prediction with empty features - should fill with 0.0"""
+    """Test prediction with empty features - should use imputation"""
     payload = {"features": {}}
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
@@ -133,7 +133,7 @@ def test_feedback():
     data = response.json()
     assert "message" in data
 
-def test_metrics():
+def test_model_metrics():
     # Train and predict_learn to generate metrics
     payload = {
         "features": {"in_1": 135.0, "in_2": 130.0},
@@ -141,7 +141,7 @@ def test_metrics():
     }
     client.post("/predict_learn", json=payload)
     
-    response = client.get("/metrics")
+    response = client.get("/model_metrics")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, dict)
@@ -203,8 +203,8 @@ def test_full_12_inputs():
     data = response.json()
     assert "prediction" in data
 
-def test_metrics_endpoint_detailed():
-    """Test the /metrics endpoint for comprehensive model performance metrics"""
+def test_prometheus_metrics():
+    """Test the /metrics endpoint for Prometheus format"""
     # Generate some predictions first
     payload = {
         "features": {"in_1": 135.0, "in_2": 130.0, "in_3": 125.0},
@@ -212,8 +212,23 @@ def test_metrics_endpoint_detailed():
     }
     client.post("/predict_learn", json=payload)
     
-    # Test metrics endpoint
+    # Test Prometheus metrics endpoint
     response = client.get("/metrics")
+    assert response.status_code == 200
+    # Should return text/plain for Prometheus format
+    assert "text/plain" in response.headers.get("content-type", "")
+
+def test_model_metrics_detailed():
+    """Test the /model_metrics endpoint for comprehensive model performance metrics"""
+    # Generate some predictions first
+    payload = {
+        "features": {"in_1": 135.0, "in_2": 130.0, "in_3": 125.0},
+        "target": 140.0
+    }
+    client.post("/predict_learn", json=payload)
+    
+    # Test model metrics endpoint
+    response = client.get("/model_metrics")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, dict)
