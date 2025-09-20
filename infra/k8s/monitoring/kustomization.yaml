@@ -14,6 +14,8 @@ resources:
   - services/prometheus.yaml
   - configmaps/prometheus-config.yaml
   - configmaps/grafana-config.yaml
+  - configmaps/promtail-config.yaml
+  - rbac.yaml
 
 labels:
   - pairs:

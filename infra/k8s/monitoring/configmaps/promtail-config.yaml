@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+data:
+  config.yml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: ml-services-pods
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: ml-services-pods
+              namespace: ml-services
+              __path__: /var/log/pods/ml-services_*/*/*.log
+        pipeline_stages:
+          - regex:
+              expression: '/var/log/pods/ml-services_(?P<app>[a-z-]+)-[a-z0-9]+-[a-z0-9]+_.*'
+              source: filename
+          - labels:
+              app:
+          - cri: {}

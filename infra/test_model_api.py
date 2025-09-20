@@ -188,7 +188,15 @@ def main():
     except Exception as e:
         print(f"Request failed: {e}")
     
-    # 18. Validation summary
+    # 18. Debug monitoring stack
+    print("\n=== Debug Information ===")
+    print("Prometheus scrape interval: 30 seconds (configured in prometheus-config.yaml)")
+    print("Prometheus targets: http://localhost:9090/targets")
+    print("Loki ready endpoint: http://localhost:3100/ready")
+    print("Model service logs: kubectl logs -n ml-services -l app=model-service")
+    print("Promtail logs: kubectl logs -n monitoring -l app=promtail")
+    
+    # 19. Validation summary
     print("\n=== Test Summary ===")
     if metrics and "default" in metrics:
         m = metrics["default"]
