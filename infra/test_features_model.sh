@@ -20,61 +20,65 @@ curl -s "$MODEL_URL/info" | jq
 
 echo -e "\n3. Integration Test - Add observations and train model:"
 
-# Add first observation to feature service and train model
+# Add first observation to feature service (model-ready response)
 echo "Step 1: Add observation 100.0"
-FEATURES=$(curl -s -X POST "$FEATURE_URL/add" \
+RESPONSE=$(curl -s -X POST "$FEATURE_URL/add" \
   -H "Content-Type: application/json" \
-  -d "{\"series_id\": \"$SERIES_ID\", \"value\": 100.0}" | jq -r '.features')
+  -d "{\"series_id\": \"$SERIES_ID\", \"value\": 100.0}")
 
-echo "Features from feature service: $FEATURES"
+echo "Model-ready response: $RESPONSE"
 
-# Train model with these features
-echo "Training model with features..."
-curl -s -X POST "$MODEL_URL/train" \
+# Train model directly with model-ready response
+echo "Training model with model-ready data..."
+echo "$RESPONSE" | jq '{features: .features, target: .target}' | curl -s -X POST \
   -H "Content-Type: application/json" \
-  -d "{\"features\": $FEATURES, \"target\": 105.0}" | jq
+  --data-binary @- \
+  "$MODEL_URL/train" | jq
 
 # Add second observation
 echo -e "\nStep 2: Add observation 105.0"
-FEATURES=$(curl -s -X POST "$FEATURE_URL/add" \
+RESPONSE=$(curl -s -X POST "$FEATURE_URL/add" \
   -H "Content-Type: application/json" \
-  -d "{\"series_id\": \"$SERIES_ID\", \"value\": 105.0}" | jq -r '.features')
+  -d "{\"series_id\": \"$SERIES_ID\", \"value\": 105.0}")
 
-echo "Features from feature service: $FEATURES"
+echo "Model-ready response: $RESPONSE"
 
-# Train model
-echo "Training model with features..."
-curl -s -X POST "$MODEL_URL/train" \
+# Train model directly with model-ready response
+echo "Training model with model-ready data..."
+echo "$RESPONSE" | jq '{features: .features, target: .target}' | curl -s -X POST \
   -H "Content-Type: application/json" \
-  -d "{\"features\": $FEATURES, \"target\": 110.0}" | jq
+  --data-binary @- \
+  "$MODEL_URL/train" | jq
 
 # Add third observation and predict
 echo -e "\nStep 3: Add observation 110.0 and predict"
-FEATURES=$(curl -s -X POST "$FEATURE_URL/add" \
+RESPONSE=$(curl -s -X POST "$FEATURE_URL/add" \
   -H "Content-Type: application/json" \
-  -d "{\"series_id\": \"$SERIES_ID\", \"value\": 110.0}" | jq -r '.features')
+  -d "{\"series_id\": \"$SERIES_ID\", \"value\": 110.0}")
 
-echo "Features from feature service: $FEATURES"
+echo "Model-ready response: $RESPONSE"
 
-# Predict with these features
+# Predict with features from response
 echo "Predicting with features..."
-curl -s -X POST "$MODEL_URL/predict" \
+echo "$RESPONSE" | jq '{features: .features}' | curl -s -X POST \
   -H "Content-Type: application/json" \
-  -d "{\"features\": $FEATURES}" | jq
+  --data-binary @- \
+  "$MODEL_URL/predict" | jq
 
 # Add fourth observation and use predict_learn
 echo -e "\nStep 4: Add observation 115.0 and predict_learn"
-FEATURES=$(curl -s -X POST "$FEATURE_URL/add" \
+RESPONSE=$(curl -s -X POST "$FEATURE_URL/add" \
   -H "Content-Type: application/json" \
-  -d "{\"series_id\": \"$SERIES_ID\", \"value\": 115.0}" | jq -r '.features')
+  -d "{\"series_id\": \"$SERIES_ID\", \"value\": 115.0}")
 
-echo "Features from feature service: $FEATURES"
+echo "Model-ready response: $RESPONSE"
 
-# Predict and learn
-echo "Predict and learn with features..."
-curl -s -X POST "$MODEL_URL/predict_learn" \
+# Predict and learn directly with model-ready response
+echo "Predict and learn with model-ready data..."
+echo "$RESPONSE" | jq '{features: .features, target: .target}' | curl -s -X POST \
   -H "Content-Type: application/json" \
-  -d "{\"features\": $FEATURES, \"target\": 120.0}" | jq
+  --data-binary @- \
+  "$MODEL_URL/predict_learn" | jq
 
 echo -e "\n4. Final Model Metrics:"
 curl -s "$MODEL_URL/model_metrics" | jq

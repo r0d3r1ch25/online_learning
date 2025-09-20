@@ -41,13 +41,14 @@ POST /add
 {
   "series_id": "default",
   "features": {
-    "in_1": 125.0,
-    "in_2": 120.0,
-    "in_3": 115.0,
+    "in_1": 120.0,
+    "in_2": 115.0,
+    "in_3": 110.0,
     "in_4": 0.0,
     ...
     "in_12": 0.0
   },
+  "target": 125.0,
   "available_lags": 3
 }
 ```
@@ -60,11 +61,11 @@ GET /series/{series_id}
 ## Feature Format
 
 The service outputs features in model-ready format:
-- `in_1`: Most recent value (current observation)
-- `in_2`: Lag 1 (previous observation)
-- `in_3`: Lag 2 (two observations ago)
+- `in_1`: Most recent previous observation (lag 1)
+- `in_2`: Second most recent previous observation (lag 2)
+- `in_3`: Third most recent previous observation (lag 3)
 - ...
-- `in_12`: Lag 11 (eleven observations ago)
+- `in_12`: Twelfth most recent previous observation (lag 12)
 
 Missing lags are filled with `0.0`.
 
@@ -131,13 +132,13 @@ bash ../../infra/test_features_model.sh
 The feature service output is directly compatible with model service input:
 
 ```python
-# Feature service output
-features = {"in_1": 125.0, "in_2": 120.0, ..., "in_12": 0.0}
+# Feature service output (model-ready)
+response = {"features": {"in_1": 120.0, "in_2": 115.0, ...}, "target": 125.0}
 
-# Model service input (ready to use)
+# Model service input (direct use)
 requests.post("http://model-service:8000/train", json={
-    "features": features,
-    "target": 130.0
+    "features": response["features"],
+    "target": response["target"]
 })
 ```
 

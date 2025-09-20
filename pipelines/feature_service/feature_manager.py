@@ -20,24 +20,24 @@ class LagFeatureManager:
         logger.info(f"Added observation {value} to series {series_id}")
     
     def extract_features(self, series_id: str, current_value: float) -> Dict[str, float]:
-        """Extract lag features and add current value, return model-ready format."""
-        # Add current observation to buffer
-        self.add_observation(series_id, current_value)
-        
-        # Get buffer for this series
+        """Extract lag features from previous observations, then add current value."""
+        # Get buffer for this series (before adding current observation)
         buffer = self.series_buffers.get(series_id, deque())
         
-        # Create model-ready features (in_1 to in_12)
+        # Create model-ready features from previous observations
         features = {}
         
-        # Fill features with lag values (in_1 = lag_1, in_2 = lag_2, etc.)
+        # Fill features with lag values (in_1 = most recent previous, etc.)
         for i in range(1, self.max_lags + 1):
             if len(buffer) >= i:
-                # in_1 is the most recent (lag_1), in_2 is lag_2, etc.
+                # in_1 is the most recent previous observation
                 features[f"in_{i}"] = buffer[-i]
             else:
                 # Fill missing lags with 0.0
                 features[f"in_{i}"] = 0.0
+        
+        # Now add current observation to buffer for next time
+        self.add_observation(series_id, current_value)
         
         return features
     

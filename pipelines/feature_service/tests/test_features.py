@@ -26,7 +26,7 @@ def test_extract_features():
     for value in values:
         manager.add_observation("test_series", value)
     
-    # Extract features with new value
+    # Extract features with new value (115.0 becomes target, not feature)
     features = manager.extract_features("test_series", 115.0)
     
     # Should return in_1 to in_12 format
@@ -34,29 +34,27 @@ def test_extract_features():
     assert "in_2" in features
     assert "in_12" in features
     
-    # in_1 should be the most recent (115.0)
-    assert features["in_1"] == 115.0
-    assert features["in_2"] == 110.0
-    assert features["in_3"] == 105.0
-    assert features["in_4"] == 100.0
+    # in_1 should be the most recent PREVIOUS observation (110.0)
+    assert features["in_1"] == 110.0
+    assert features["in_2"] == 105.0
+    assert features["in_3"] == 100.0
     
     # Missing lags should be 0.0
-    assert features["in_5"] == 0.0
+    assert features["in_4"] == 0.0
     assert features["in_12"] == 0.0
 
 def test_extract_features_empty_series():
     """Test extracting features for new series."""
     manager = LagFeatureManager(max_lags=12)
     
-    # Extract features for new series
+    # Extract features for new series (no previous observations)
     features = manager.extract_features("new_series", 50.0)
     
     # Should have in_1 to in_12
     assert len(features) == 12
-    assert features["in_1"] == 50.0
     
-    # All other lags should be 0.0
-    for i in range(2, 13):
+    # All lags should be 0.0 since no previous observations
+    for i in range(1, 13):
         assert features[f"in_{i}"] == 0.0
 
 def test_max_lags_limit():

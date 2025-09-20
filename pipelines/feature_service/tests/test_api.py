@@ -30,13 +30,15 @@ def test_add_observation():
     data = response.json()
     assert data["series_id"] == "test_series"
     assert "features" in data
+    assert "target" in data
     assert "available_lags" in data
     
-    # Check model-ready format
+    # Check model-ready format - first observation has no previous lags
     features = data["features"]
     assert "in_1" in features
     assert "in_12" in features
-    assert features["in_1"] == 100.0
+    assert features["in_1"] == 0.0  # No previous observations
+    assert data["target"] == 100.0  # Current observation as target
     assert len(features) == 12
 
 def test_add_multiple_observations():
@@ -52,14 +54,20 @@ def test_add_multiple_observations():
         assert response.status_code == 200
         data = response.json()
         
-        # Check lag pattern
+        # Check lag pattern - features are PREVIOUS observations
         features = data["features"]
-        assert features["in_1"] == value
         
-        if i > 0:
-            assert features["in_2"] == values[i-1]
+        if i == 0:
+            # First observation - no previous lags
+            assert features["in_1"] == 0.0
+        else:
+            # in_1 should be the most recent previous observation
+            assert features["in_1"] == values[i-1]
+            
         if i > 1:
-            assert features["in_3"] == values[i-2]
+            assert features["in_2"] == values[i-2]
+        if i > 2:
+            assert features["in_3"] == values[i-3]
 
 def test_get_series_info():
     # Add some observations first

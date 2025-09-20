@@ -130,7 +130,7 @@ curl http://<your-ip>:8002/status
 curl -X POST http://<your-ip>:8001/add \
   -H "Content-Type: application/json" \
   -d '{"series_id": "default", "value": 125.0}'
-# Returns: {"features": {"in_1": 125.0, "in_2": 120.0, ...}, "available_lags": 2}
+# Returns: {"features": {"in_1": 120.0, "in_2": 115.0, ...}, "target": 125.0, "available_lags": 2}
 ```
 
 ### Model Service API
@@ -192,10 +192,6 @@ make cluster-down    # Delete cluster
 ### Deployment
 ```bash
 make apply           # Deploy all services
-make apply-ml        # Deploy ML services only
-make apply-argo      # Deploy Argo only
-make apply-feast     # Deploy Feast only
-make apply-monitoring # Deploy monitoring only
 ```
 
 ### Service Testing
@@ -395,6 +391,7 @@ curl http://<your-ip>:8001/info
 curl -X POST http://<your-ip>:8001/add \
   -H "Content-Type: application/json" \
   -d '{"series_id": "default", "value": 125.0}'
+# Returns: {"features": {...}, "target": 125.0, "available_lags": N}
 ```
 
 **Get Series Information**

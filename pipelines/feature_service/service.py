@@ -20,6 +20,7 @@ class ExtractRequest(BaseModel):
 class ExtractResponse(BaseModel):
     series_id: str
     features: Dict[str, float]
+    target: float
     available_lags: int
 
 @app.get("/health")
@@ -39,7 +40,7 @@ async def get_info():
 
 @app.post("/add", response_model=ExtractResponse)
 async def add_observation(request: ExtractRequest):
-    """Add observation and extract lag features, return model-ready format."""
+    """Extract lag features and return model-ready format with target."""
     try:
         # Extract features in model-ready format (in_1 to in_12)
         features = feature_manager.extract_features(request.series_id, request.value)
@@ -51,6 +52,7 @@ async def add_observation(request: ExtractRequest):
         return ExtractResponse(
             series_id=request.series_id,
             features=features,
+            target=request.value,
             available_lags=min(available_lags, feature_manager.max_lags)
         )
     except Exception as e:

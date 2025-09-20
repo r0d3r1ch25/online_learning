@@ -38,3 +38,8 @@ argo-hello:
 .PHONY: clean
 clean:
 	kubectl delete -k infra/k8s/ || true
+
+# Reset cluster with latest code
+.PHONY: again
+again:
+	make cluster-down && git pull && make cluster-up && make apply
