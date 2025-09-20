@@ -5,8 +5,10 @@ metadata:
   labels:
     app: loki
 spec:
+  type: LoadBalancer
   ports:
   - port: 3100
     targetPort: 3100
+    name: loki
   selector:
     app: loki

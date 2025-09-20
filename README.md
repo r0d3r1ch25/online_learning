@@ -95,6 +95,7 @@ Once deployed, access services via LoadBalancer:
 - **Argo Server**: `https://<your-ip>:2746` - Workflow management
 - **Grafana**: `http://<your-ip>:3000` - Monitoring (admin/admin)
 - **Prometheus**: `http://<your-ip>:9090` - Metrics collection and monitoring
+- **Loki**: `http://<your-ip>:3100` - Log aggregation API
 
 ### 3. Run Online Learning Pipeline
 
@@ -202,6 +203,15 @@ python3 infra/test_model_api.py [url]
 
 # Test Argo installation
 make argo-hello
+```
+
+### Grafana Monitoring
+```bash
+# Access Grafana with pre-configured data sources
+open http://localhost:3000  # admin/admin
+
+# See query examples for metrics and logs
+cat infra/GRAFANA_QUERIES.md
 ```
 
 ## CI/CD Pipeline

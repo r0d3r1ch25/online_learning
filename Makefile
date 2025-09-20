@@ -15,6 +15,7 @@ cluster-up:
 		--port "0.0.0.0:2746:2746@loadbalancer" \
 		--port "0.0.0.0:6379:6379@loadbalancer" \
 		--port "0.0.0.0:3000:3000@loadbalancer" \
+		--port "0.0.0.0:3100:3100@loadbalancer" \
 		--port "0.0.0.0:9090:9090@loadbalancer" \
 		--k3s-arg "--disable=traefik@server:*"
 
