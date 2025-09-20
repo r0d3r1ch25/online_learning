@@ -7,7 +7,7 @@ A complete MLOps platform for online learning experiments with real-time model t
 The platform consists of three main microservices deployed on a k3d Kubernetes cluster:
 
 - **Ingestion Service** (Port 8002): Streams time series data observations one at a time
-- **Feature Service** (Port 8001): Extracts time series features from raw observations  
+- **Feature Service** (Port 8001): Calculates lag features and outputs model-ready format  
 - **Model Service** (Port 8000): Performs online machine learning with real-time training and prediction
 
 ## Project Structure
@@ -126,10 +126,11 @@ curl http://<your-ip>:8002/status
 ### Feature Service API
 
 ```bash
-# Extract features from observation
+# Extract lag features from time series value
 curl -X POST http://<your-ip>:8001/extract \
   -H "Content-Type: application/json" \
-  -d '{"observation_id": 1, "input": "1949-01", "target": 112}'
+  -d '{"series_id": "default", "value": 125.0}'
+# Returns: {"features": {"in_1": 125.0, "in_2": 120.0, ...}, "available_lags": 2}
 ```
 
 ### Model Service API
@@ -209,10 +210,18 @@ make argo-hello
 ```bash
 # Access Grafana with pre-configured data sources
 open http://localhost:3000  # admin/admin
-
-# See query examples for metrics and logs
-cat infra/GRAFANA_QUERIES.md
 ```
+
+**Prometheus Queries (Metrics):**
+- `ml_model_mae` - Mean Absolute Error
+- `ml_model_rmse` - Root Mean Squared Error  
+- `ml_model_predictions_total` - Total predictions count
+- `ml_model_last_prediction` - Last prediction value
+
+**Loki Queries (Logs):**
+- `{app="model-service"}` - All model service logs
+- `{app="model-service"} |= "WARNING"` - Warning logs only
+- `{namespace="ml-services"}` - All ML services logs
 
 ## CI/CD Pipeline
 
@@ -246,8 +255,8 @@ Each service has automated GitHub Actions that trigger on:
 ## Data Flow
 
 1. **Ingestion Service** streams time series observations (date, value pairs)
-2. **Feature Service** extracts time series features from raw observations
-3. **Model Service** performs online learning using features and targets
+2. **Feature Service** calculates lag features and outputs model-ready format (in_1 to in_12)
+3. **Model Service** performs online learning using model-ready features and targets
 4. **Argo Workflows** orchestrate the end-to-end pipeline
 5. **Monitoring Stack** tracks logs and metrics across all services
 
@@ -286,7 +295,7 @@ curl http://<your-ip>:8002/health  # Ingestion service
 Each microservice has detailed documentation in its respective directory:
 
 - **[Ingestion Service](pipelines/ingestion_service/README.md)**: Time series data streaming API with sequential observation delivery
-- **[Feature Service](pipelines/feature_service/README.md)**: Lag feature extraction for time series with up to 12 historical values
+- **[Feature Service](pipelines/feature_service/README.md)**: Lag feature calculation with model-ready output format (in_1 to in_12)
 - **[Model Service](pipelines/model_service/README.md)**: Stateless online ML service with River LinearRegression
   - **Input Features**: Up to 12 generic inputs (in_1 to in_12) with automatic validation
   - **Forecast Horizon**: Fixed 3-step predictions (configurable at build time)
@@ -358,3 +367,79 @@ All services are automatically built and pushed to Docker Hub:
 - **CI/CD**: GitHub Actions
 - **Container Registry**: Docker Hub
 - **Online Learning**: River (incremental ML algorithms)
+
+## API Endpoints Reference
+
+### Feature Service (Port 8001)
+
+**Health Check**
+```bash
+curl http://<your-ip>:8001/health
+```
+
+**Service Information**
+```bash
+curl http://<your-ip>:8001/info
+```
+
+**Extract Lag Features (Model-Ready Format)**
+```bash
+curl -X POST http://<your-ip>:8001/extract \
+  -H "Content-Type: application/json" \
+  -d '{"series_id": "default", "value": 125.0}'
+```
+
+**Get Series Information**
+```bash
+curl http://<your-ip>:8001/series/default
+```
+
+### Model Service (Port 8000)
+
+**Health Check**
+```bash
+curl http://<your-ip>:8000/health
+```
+
+**Service Information**
+```bash
+curl http://<your-ip>:8000/info
+```
+
+**Train Model**
+```bash
+curl -X POST http://<your-ip>:8000/train \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0}, "target": 130.0}'
+```
+
+**Predict (3-Step Horizon)**
+```bash
+curl -X POST http://<your-ip>:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}}'
+```
+
+**Online Learning (Predict then Learn)**
+```bash
+curl -X POST http://<your-ip>:8000/predict_learn \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
+```
+
+**Get Performance Metrics**
+```bash
+curl http://<your-ip>:8000/metrics
+```
+
+**Get Prometheus Metrics**
+```bash
+curl http://<your-ip>:8000/metrics/prometheus
+```
+
+**Submit Feedback**
+```bash
+curl -X POST http://<your-ip>:8000/feedback \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Model performing well"}'
+```

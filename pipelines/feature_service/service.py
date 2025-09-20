@@ -1,8 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 import logging
-import os
 from feature_manager import LagFeatureManager
 
 # Configure logging
@@ -14,29 +13,14 @@ app = FastAPI(title="Feature Service", version="1.0.0")
 # Global feature manager
 feature_manager = LagFeatureManager(max_lags=12)
 
-class ObservationRequest(BaseModel):
-    series_id: str
+class ExtractRequest(BaseModel):
+    series_id: str = "default"
     value: float
 
-class FeaturesRequest(BaseModel):
-    series_id: str
-    num_lags: Optional[int] = None
-
-class FeaturesResponse(BaseModel):
+class ExtractResponse(BaseModel):
     series_id: str
     features: Dict[str, float]
     available_lags: int
-
-@app.on_event("startup")
-async def startup_event():
-    """Load initial data on startup."""
-    csv_path = "../ingestion_service/data.csv"
-    if os.path.exists(csv_path):
-        try:
-            feature_manager.load_from_csv(csv_path, "air_passengers")
-            logger.info("Loaded initial data from CSV")
-        except Exception as e:
-            logger.warning(f"Could not load initial data: {e}")
 
 @app.get("/health")
 async def health_check():
@@ -49,49 +33,42 @@ async def get_info():
     return {
         "service": "feature_service",
         "max_lags": feature_manager.max_lags,
+        "output_format": "model_ready_in_1_to_in_12",
         "series_info": feature_manager.get_series_info()
     }
 
-@app.post("/add_observation")
-async def add_observation(request: ObservationRequest):
-    """Add new observation to a time series."""
+@app.post("/extract", response_model=ExtractResponse)
+async def extract_features(request: ExtractRequest):
+    """Extract lag features from current value, return model-ready format."""
     try:
-        feature_manager.add_observation(request.series_id, request.value)
-        return {
-            "status": "success",
-            "series_id": request.series_id,
-            "value": request.value,
-            "message": "Observation added successfully"
-        }
-    except Exception as e:
-        logger.error(f"Error adding observation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/features", response_model=FeaturesResponse)
-async def get_features(request: FeaturesRequest):
-    """Get lag features for a time series."""
-    try:
-        features = feature_manager.get_lag_features(request.series_id, request.num_lags)
+        # Extract features in model-ready format (in_1 to in_12)
+        features = feature_manager.extract_features(request.series_id, request.value)
         
-        if not features:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"No features available for series {request.series_id}"
-            )
+        # Get available lags count
+        buffer = feature_manager.series_buffers.get(request.series_id)
+        available_lags = len(buffer) if buffer else 0
         
-        return FeaturesResponse(
+        return ExtractResponse(
             series_id=request.series_id,
             features=features,
-            available_lags=len(features)
+            available_lags=min(available_lags, feature_manager.max_lags)
         )
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Error getting features: {e}")
+        logger.error(f"Error extracting features: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/features/{series_id}")
-async def get_features_by_id(series_id: str, num_lags: Optional[int] = None):
-    """Get lag features for a specific series (GET endpoint)."""
-    request = FeaturesRequest(series_id=series_id, num_lags=num_lags)
-    return await get_features(request)
+@app.get("/series/{series_id}")
+async def get_series_info(series_id: str):
+    """Get information about a specific series."""
+    series_info = feature_manager.get_series_info()
+    
+    if series_id not in series_info:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Series {series_id} not found"
+        )
+    
+    return {
+        "series_id": series_id,
+        **series_info[series_id]
+    }

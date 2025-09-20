@@ -17,30 +17,47 @@ def test_add_observation():
     assert "test_series" in manager.series_buffers
     assert len(manager.series_buffers["test_series"]) == 2
 
-def test_get_lag_features():
-    """Test getting lag features."""
-    manager = LagFeatureManager(max_lags=5)
+def test_extract_features():
+    """Test extracting model-ready features."""
+    manager = LagFeatureManager(max_lags=12)
     
-    # Add observations
-    values = [100, 105, 110, 115, 120]
+    # Add some observations
+    values = [100, 105, 110]
     for value in values:
         manager.add_observation("test_series", value)
     
-    # Get features
-    features = manager.get_lag_features("test_series", num_lags=3)
+    # Extract features with new value
+    features = manager.extract_features("test_series", 115.0)
     
-    assert "lag_1" in features
-    assert "lag_2" in features
-    assert "lag_3" in features
-    assert features["lag_1"] == 120  # Latest value
-    assert features["lag_2"] == 115
-    assert features["lag_3"] == 110
+    # Should return in_1 to in_12 format
+    assert "in_1" in features
+    assert "in_2" in features
+    assert "in_12" in features
+    
+    # in_1 should be the most recent (115.0)
+    assert features["in_1"] == 115.0
+    assert features["in_2"] == 110.0
+    assert features["in_3"] == 105.0
+    assert features["in_4"] == 100.0
+    
+    # Missing lags should be 0.0
+    assert features["in_5"] == 0.0
+    assert features["in_12"] == 0.0
 
-def test_get_lag_features_empty_series():
-    """Test getting features for non-existent series."""
-    manager = LagFeatureManager()
-    features = manager.get_lag_features("nonexistent")
-    assert features == {}
+def test_extract_features_empty_series():
+    """Test extracting features for new series."""
+    manager = LagFeatureManager(max_lags=12)
+    
+    # Extract features for new series
+    features = manager.extract_features("new_series", 50.0)
+    
+    # Should have in_1 to in_12
+    assert len(features) == 12
+    assert features["in_1"] == 50.0
+    
+    # All other lags should be 0.0
+    for i in range(2, 13):
+        assert features[f"in_{i}"] == 0.0
 
 def test_max_lags_limit():
     """Test that buffer respects max_lags limit."""
@@ -52,10 +69,6 @@ def test_max_lags_limit():
     
     # Buffer should only keep last 3 values
     assert len(manager.series_buffers["test_series"]) == 3
-    
-    features = manager.get_lag_features("test_series")
-    assert len(features) == 3
-    assert features["lag_1"] == 4  # Latest value
 
 def test_get_series_info():
     """Test getting series information."""

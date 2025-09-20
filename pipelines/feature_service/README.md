@@ -1,115 +1,169 @@
 # Feature Service
 
-Time series feature extraction service that computes lag features for online machine learning workflows.
+Lag feature extraction service for time series data. Calculates lag features and outputs model-ready format for the model service.
 
 ## Overview
 
-The feature service extracts lag features from time series observations, supporting up to 12 lags. It loads initial data from CSV and provides REST API for adding observations and retrieving features for online learning.
+The Feature Service processes time series observations and extracts lag features in a format ready for consumption by the Model Service. It maintains internal buffers for each time series and outputs features as `in_1` to `in_12` format.
 
-## Features
+## Key Features
 
-- **Lag Feature Extraction**: Computes lag features (up to 12 lags) for time series data
-- **Initial Data Loading**: Loads air passenger data from CSV on startup
-- **Series Management**: Handles multiple time series with unique series IDs
-- **REST API**: Add observations and retrieve features via HTTP endpoints
-- **Online Learning Ready**: Designed for incremental/online ML workflows
+- **Lag Feature Calculation**: Computes up to 12 lag features from time series data
+- **Model-Ready Output**: Returns features in `in_1` to `in_12` format for direct model input
+- **Multiple Series Support**: Handles multiple independent time series
+- **Stateful Processing**: Maintains internal buffers for lag calculation
+- **Zero-Fill**: Missing lags are automatically filled with 0.0
 
 ## API Endpoints
 
-### `GET /health`
-Service health check for Kubernetes probes.
-- **200**: Service is healthy
-
-### `GET /info`
-Service information and series status.
-- **200**: Max lags, series information
-
-### `POST /add_observation`
-Add new observation to a time series.
-
-**Request:**
-```json
-{
-  "series_id": "air_passengers",
-  "value": 150.0
-}
+### Health Check
+```bash
+GET /health
 ```
 
-### `POST /features`
-Get lag features for a time series.
+### Service Information
+```bash
+GET /info
+```
 
-**Request:**
-```json
+### Extract Features
+```bash
+POST /extract
 {
-  "series_id": "air_passengers", 
-  "num_lags": 5
+  "series_id": "default",
+  "value": 125.0
 }
 ```
 
 **Response:**
 ```json
 {
-  "series_id": "air_passengers",
+  "series_id": "default",
   "features": {
-    "lag_1": 145.0,
-    "lag_2": 140.0,
-    "lag_3": 135.0
+    "in_1": 125.0,
+    "in_2": 120.0,
+    "in_3": 115.0,
+    "in_4": 0.0,
+    ...
+    "in_12": 0.0
   },
   "available_lags": 3
 }
 ```
 
-### `GET /features/{series_id}`
-Get lag features for a specific series (GET endpoint).
-- Query parameter: `num_lags` (optional)
+### Series Information
+```bash
+GET /series/{series_id}
+```
 
-## Feature Engineering
+## Feature Format
 
-The service computes lag features using the `LagFeatureManager`:
-- **Max Lags**: 12 historical values
-- **Feature Names**: `lag_1`, `lag_2`, ..., `lag_n`
-- **Series Support**: Multiple independent time series
+The service outputs features in model-ready format:
+- `in_1`: Most recent value (current observation)
+- `in_2`: Lag 1 (previous observation)
+- `in_3`: Lag 2 (two observations ago)
+- ...
+- `in_12`: Lag 11 (eleven observations ago)
+
+Missing lags are filled with `0.0`.
 
 ## Usage Example
 
-```bash
-# Add observation
-curl -X POST "http://localhost:8001/add_observation" \
-  -H "Content-Type: application/json" \
-  -d '{"series_id": "sales", "value": 150}'
+```python
+import requests
 
-# Get features
-curl -X POST "http://localhost:8001/features" \
-  -H "Content-Type: application/json" \
-  -d '{"series_id": "sales", "num_lags": 5}'
+# Extract features from new observation
+response = requests.post("http://localhost:8001/extract", json={
+    "series_id": "my_series",
+    "value": 150.0
+})
 
-# Get service info
-curl http://localhost:8001/info
+features = response.json()["features"]
+# features is ready for model service input
 ```
 
 ## Development
 
-### Run locally
+### Local Development
 ```bash
+# Install dependencies
 pip install -r requirements.txt
-python main.py
-```
 
-### Run tests
-```bash
-PYTHONPATH=. pytest tests/ -v
+# Run service
+python main.py
+
+# Run tests
+pytest tests/ -v
 ```
 
 ### Docker
 ```bash
+# Build image
 docker build -t ml-features .
+
+# Run container
 docker run -p 8001:8001 ml-features
+```
+
+### Test Deployed Service
+```bash
+# Test locally
+python3 ../../infra/test_features_api.py
+
+# Test deployed service
+python3 ../../infra/test_features_api.py http://<your-ip>:8001
+```
+
+## Configuration
+
+- **Max Lags**: 12 (configurable in LagFeatureManager)
+- **Port**: 8001
+- **Output Format**: in_1 to in_12 (model-ready)
+
+## Integration
+
+### With Model Service
+The feature service output is directly compatible with model service input:
+
+```python
+# Feature service output
+features = {"in_1": 125.0, "in_2": 120.0, ..., "in_12": 0.0}
+
+# Model service input (ready to use)
+requests.post("http://model-service:8000/train", json={
+    "features": features,
+    "target": 130.0
+})
+```
+
+### With Ingestion Service
+Receives observations from ingestion service and processes them:
+
+```python
+# From ingestion service
+observation = {"value": 125.0, "series_id": "default"}
+
+# To feature service
+requests.post("http://feature-service:8001/extract", json=observation)
 ```
 
 ## Deployment
 
 - **Docker Image**: `r0d3r1ch25/ml-features:latest`
-- **Kubernetes Port**: 8001
-- **LoadBalancer**: Accessible at `http://<your-ip>:8001`
-- **CI/CD**: Automated build/push on changes to `pipelines/feature_service/**`
-- **Initial Data**: Loads air passenger data from `../ingestion_service/data.csv` on startup
+- **Kubernetes**: Deployed in `ml-services` namespace
+- **Port**: 8001
+- **Health Check**: `/health` endpoint
+
+## Architecture
+
+```
+Input: Time Series Value
+         ↓
+    Lag Calculation
+         ↓
+   Model-Ready Features
+         ↓
+    Output: in_1 to in_12
+```
+
+The service maintains internal state for each time series to calculate lag features efficiently.

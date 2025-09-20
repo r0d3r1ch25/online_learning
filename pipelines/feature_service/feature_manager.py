@@ -1,4 +1,3 @@
-import pandas as pd
 from typing import Dict, List, Optional
 from collections import deque
 import logging
@@ -20,48 +19,27 @@ class LagFeatureManager:
         self.series_buffers[series_id].append(value)
         logger.info(f"Added observation {value} to series {series_id}")
     
-    def get_lag_features(self, series_id: str, num_lags: int = None) -> Dict[str, float]:
-        """Get lag features for a series."""
-        if num_lags is None:
-            num_lags = self.max_lags
+    def extract_features(self, series_id: str, current_value: float) -> Dict[str, float]:
+        """Extract lag features and add current value, return model-ready format."""
+        # Add current observation to buffer
+        self.add_observation(series_id, current_value)
         
-        num_lags = min(num_lags, self.max_lags)
+        # Get buffer for this series
+        buffer = self.series_buffers.get(series_id, deque())
         
-        if series_id not in self.series_buffers:
-            return {}
-        
-        buffer = self.series_buffers[series_id]
+        # Create model-ready features (in_1 to in_12)
         features = {}
         
-        for i in range(1, min(num_lags + 1, len(buffer) + 1)):
+        # Fill features with lag values (in_1 = lag_1, in_2 = lag_2, etc.)
+        for i in range(1, self.max_lags + 1):
             if len(buffer) >= i:
-                features[f"lag_{i}"] = buffer[-i]
+                # in_1 is the most recent (lag_1), in_2 is lag_2, etc.
+                features[f"in_{i}"] = buffer[-i]
+            else:
+                # Fill missing lags with 0.0
+                features[f"in_{i}"] = 0.0
         
         return features
-    
-    def load_from_csv(self, csv_path: str, series_id: str = "default") -> None:
-        """Load historical data from CSV to build initial lag features."""
-        try:
-            df = pd.read_csv(csv_path)
-            
-            # Assume CSV has 'target' column for the time series values
-            if 'target' in df.columns:
-                values = df['target'].tolist()
-            elif 'value' in df.columns:
-                values = df['value'].tolist()
-            else:
-                # Use the second column if no standard names
-                values = df.iloc[:, 1].tolist()
-            
-            # Add observations to build lag features
-            for value in values:
-                self.add_observation(series_id, float(value))
-            
-            logger.info(f"Loaded {len(values)} observations for series {series_id}")
-            
-        except Exception as e:
-            logger.error(f"Error loading CSV {csv_path}: {e}")
-            raise
     
     def get_series_info(self) -> Dict[str, Dict]:
         """Get information about all series."""
