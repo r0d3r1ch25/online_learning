@@ -66,10 +66,10 @@ online_learning/
 - **workflow-controller**: Workflow execution engine
 
 #### monitoring
-- **grafana**: Log visualization dashboard (Port 3000)
-- **loki**: Log aggregation backend
+- **grafana**: Log visualization dashboard with Loki and Prometheus data sources (Port 3000)
+- **loki**: Log aggregation backend (Port 3100)
 - **promtail**: Log collection agent (DaemonSet)
-- **prometheus**: Metrics collection and monitoring (Port 9090)
+- **prometheus**: Metrics collection and monitoring with ML model metrics (Port 9090)
 
 ## Quick Start
 
@@ -165,13 +165,17 @@ curl -X POST http://<your-ip>:8000/predict_learn \
 
 # Get comprehensive model performance metrics (MAE, MSE, RMSE)
 curl http://<your-ip>:8000/metrics
+
+# Get Prometheus-compatible metrics for monitoring
+curl http://<your-ip>:8000/metrics/prometheus
 ```
 
 **Key Features:**
 - **Up to 12 Inputs**: in_1, in_2, ..., in_12 (missing features auto-filled with 0.0)
 - **Build-Time Config**: FORECAST_HORIZON=3, NUM_FEATURES=12 (rebuild to change)
 - **Input Validation**: Unknown features trigger warnings but don't fail
-- **Performance Tracking**: Single /metrics endpoint with MAE, MSE, RMSE
+- **Performance Tracking**: /metrics endpoint with MAE, MSE, RMSE + Prometheus integration
+- **Prometheus Ready**: /metrics/prometheus endpoint for monitoring stack integration
 - **Stateless Design**: No memory management, features provided externally
 
 ## Development Commands
@@ -193,7 +197,7 @@ make apply-monitoring # Deploy monitoring only
 
 ### Service Testing
 ```bash
-# Test model service (locally or deployed)
+# Test monitoring stack + model service (comprehensive)
 python3 infra/test_model_api.py [url]
 
 # Test Argo installation
@@ -261,9 +265,11 @@ curl http://<your-ip>:8002/health  # Ingestion service
 ```
 
 ### Logs and Monitoring
-- Access Grafana at `http://<your-ip>:3000`
-- View Argo workflows at `https://<your-ip>:2746`
-- Check pod logs: `kubectl logs -n ml-services <pod-name>`
+- **Grafana**: `http://<your-ip>:3000` (admin/admin) - Pre-configured with Loki and Prometheus data sources
+- **Prometheus**: `http://<your-ip>:9090` - ML model metrics collection and monitoring
+- **Loki**: Log aggregation from all services via Promtail
+- **Argo Workflows**: `https://<your-ip>:2746` - Pipeline orchestration
+- **Pod Logs**: `kubectl logs -n ml-services <pod-name>`
 
 ## Service Documentation
 
@@ -314,8 +320,10 @@ All services are automatically built and pushed to Docker Hub:
 - ✅ Workflow management UI accessible
 
 **Monitoring & Observability**
-- ✅ Grafana + Loki + Promtail stack
+- ✅ Grafana + Loki + Promtail + Prometheus stack
 - ✅ Log aggregation from all services
+- ✅ ML model metrics collection and monitoring
+- ✅ Pre-configured data sources in Grafana
 - ✅ Dashboard accessible via LoadBalancer
 
 **Feature Store**
@@ -336,7 +344,7 @@ All services are automatically built and pushed to Docker Hub:
 - **Workflow Engine**: Argo Workflows
 - **API Framework**: FastAPI
 - **Feature Store**: Feast + Redis + MinIO
-- **Monitoring**: Grafana + Loki + Promtail
+- **Monitoring**: Grafana + Loki + Promtail + Prometheus
 - **CI/CD**: GitHub Actions
 - **Container Registry**: Docker Hub
 - **Online Learning**: River (incremental ML algorithms)

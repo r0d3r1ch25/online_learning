@@ -7,6 +7,37 @@ import time
 
 API_URL = "http://localhost:8000"
 
+def test_monitoring_stack():
+    """Test monitoring stack services"""
+    print("=== Testing Monitoring Stack ===")
+    
+    services = {
+        "Grafana": "http://localhost:3000/api/health",
+        "Prometheus": "http://localhost:9090/-/healthy", 
+        "Loki": "http://localhost:3100/ready"
+    }
+    
+    results = {}
+    for name, url in services.items():
+        try:
+            response = requests.get(url, timeout=5)
+            print(f"[OK] {name}: {response.status_code}")
+            results[name] = True
+        except Exception as e:
+            print(f"[FAIL] {name}: {e}")
+            results[name] = False
+    
+    working = sum(results.values())
+    total = len(results)
+    print(f"\nMonitoring services: {working}/{total} working")
+    
+    if results.get("Grafana"):
+        print("Grafana: http://localhost:3000 (admin/admin)")
+    if results.get("Prometheus"):
+        print("Prometheus: http://localhost:9090")
+    
+    return results
+
 def test_endpoint(name, method, endpoint, data=None):
     """Test an API endpoint and return response"""
     print(f"\n{name}:")
@@ -29,7 +60,10 @@ def test_endpoint(name, method, endpoint, data=None):
         return None
 
 def main():
-    print("=== Testing Deployed Model Service API ===")
+    # Test monitoring stack first
+    monitoring_results = test_monitoring_stack()
+    
+    print("\n=== Testing Deployed Model Service API ===")
     
     # 1. Health Check
     test_endpoint("1. Health Check", "GET", "/health")
@@ -163,7 +197,9 @@ def main():
         print(f"Last Prediction: {m.get('last_prediction', 'N/A')}")
         print(f"Last Actual: {m.get('last_actual', 'N/A')}")
     
-    print("\n✅ All tests completed successfully!")
+    print("\n=== All Tests Completed ===")
+    print("Model API: All endpoints tested successfully")
+    print("Monitoring: Check Grafana and Prometheus for data sources")
     print("Note: Check service logs for warnings about unknown input features")
 
 if __name__ == "__main__":

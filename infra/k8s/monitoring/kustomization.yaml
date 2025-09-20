@@ -12,7 +12,8 @@ resources:
   - services/loki.yaml
   - services/grafana.yaml
   - services/prometheus.yaml
-  - prometheus-config.yaml
+  - configmaps/prometheus-config.yaml
+  - configmaps/grafana-config.yaml
 
 labels:
   - pairs:
