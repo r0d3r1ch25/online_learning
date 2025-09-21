@@ -17,25 +17,35 @@ online_learning/
 ├── .github/workflows/          # CI/CD pipelines
 │   ├── ingestion.yml          # Ingestion service CI/CD
 │   ├── features_ci.yml        # Feature service CI/CD
-│   └── model_ci.yml           # Model service CI/CD
+│   ├── model_ci.yml           # Model service CI/CD
+│   └── e2e_job_ci.yml         # E2E job CI/CD
 ├── pipelines/                 # Microservices
 │   ├── ingestion_service/     # Time series data streaming
 │   │   ├── data.csv          # Sample dataset (1949-1960 monthly data)
 │   │   ├── service.py        # Core ingestion logic
 │   │   ├── main.py           # FastAPI application
+│   │   ├── Dockerfile        # Non-root container image
 │   │   ├── README.md         # Service documentation
 │   │   └── tests/            # Unit tests
 │   ├── feature_service/       # Feature extraction
 │   │   ├── feature_manager.py # Time series feature engineering
 │   │   ├── service.py        # FastAPI service
+│   │   ├── Dockerfile        # Non-root container image
 │   │   ├── README.md         # Service documentation
 │   │   └── tests/            # Unit tests
 │   └── model_service/         # Online ML models
 │       ├── model_manager.py   # Online learning algorithms
 │       ├── metrics_manager.py # Performance tracking
 │       ├── service.py        # FastAPI service
+│       ├── Dockerfile        # Non-root container image
 │       ├── README.md         # Service documentation
 │       └── tests/            # Unit tests
+├── jobs/                      # Job containers
+│   └── e2e_job/              # End-to-end pipeline job
+│       ├── pipeline.py       # Pipeline orchestration logic
+│       ├── Dockerfile        # Non-root container image
+│       ├── requirements.txt  # Job dependencies
+│       └── README.md         # Job documentation
 ├── infra/                     # Infrastructure as Code
 │   ├── k8s/                  # Kubernetes manifests
 │   │   ├── ml-services/      # ML microservices deployment
@@ -43,7 +53,8 @@ online_learning/
 │   │   ├── feast/            # Feature store infrastructure
 │   │   └── monitoring/       # Observability stack
 │   └── workflows/            # Argo workflow definitions
-│       └── v0/               # CronWorkflow (every minute)
+│       ├── v0/               # CronWorkflow (inline script)
+│       └── v1/               # CronWorkflow (baked image)
 └── Makefile                  # Infrastructure automation
 ```
 
@@ -342,11 +353,17 @@ Each microservice has detailed documentation in its respective directory:
 
 ## Docker Images
 
-All services are automatically built and pushed to Docker Hub:
+All images use non-root users for security and are automatically built and pushed to Docker Hub:
 
 - **ml-ingestion**: `r0d3r1ch25/ml-ingestion:latest` - Time series data streaming service
 - **ml-features**: `r0d3r1ch25/ml-features:latest` - Feature extraction service  
 - **ml-model**: `r0d3r1ch25/ml-model:latest` - Online ML training and prediction service
+- **ml-e2e-job**: `r0d3r1ch25/ml-e2e-job:latest` - End-to-end pipeline orchestration job
+
+**Security Features:**
+- All containers run as non-root user `appuser`
+- Principle of least privilege applied
+- Reduced attack surface for production deployments
 
 ## Current Project Status
 

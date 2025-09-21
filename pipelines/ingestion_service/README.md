@@ -85,6 +85,7 @@ docker run -p 8002:8002 ml-ingestion
 ## Deployment
 
 - **Docker Image**: `r0d3r1ch25/ml-ingestion:latest`
+- **Security**: Runs as non-root user `appuser` for enhanced security
 - **Kubernetes Port**: 8002
 - **LoadBalancer**: Accessible at `http://<your-ip>:8002`
 - **CI/CD**: Automated build/push on changes to `pipelines/ingestion_service/**`

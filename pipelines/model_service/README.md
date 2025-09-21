@@ -269,6 +269,7 @@ docker run -p 8000:8000 -e MODEL_NAME=ridge_regression ml-model
 ## Deployment
 
 - **Docker Image**: `r0d3r1ch25/ml-model:latest`
+- **Security**: Runs as non-root user `appuser` for enhanced security
 - **Kubernetes Port**: 8000
 - **LoadBalancer**: Accessible at `http://<your-ip>:8000`
 - **CI/CD**: Automated build/push on changes to `pipelines/model_service/**`

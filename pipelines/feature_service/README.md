@@ -194,9 +194,11 @@ requests.post("http://feature-service:8001/add", json=observation)
 ## Deployment
 
 - **Docker Image**: `r0d3r1ch25/ml-features:latest`
+- **Security**: Runs as non-root user `appuser` for enhanced security
 - **Kubernetes**: Deployed in `ml-services` namespace
 - **Port**: 8001
 - **Health Check**: `/health` endpoint
+- **CI/CD**: Automated build/push on changes to `pipelines/feature_service/**`
 
 ## Architecture
 

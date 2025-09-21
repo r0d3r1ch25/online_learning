@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'infra/workflows/v1/**'
+      - 'jobs/e2e_job/**'
   workflow_dispatch:
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
     - name: Build and push E2E job image
       uses: docker/build-push-action@v5
       with:
-        context: ./infra/workflows/v1
+        context: ./jobs/e2e_job
         platforms: linux/arm64
         push: true
         tags: r0d3r1ch25/ml-e2e-job:latest
