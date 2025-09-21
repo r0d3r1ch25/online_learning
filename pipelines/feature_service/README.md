@@ -13,7 +13,7 @@ The Feature Service processes time series observations and extracts lag features
 - **Multiple Series Support**: Handles multiple independent time series
 - **Stateful Processing**: Maintains internal buffers for lag calculation
 - **Zero-Fill**: Missing lags are automatically filled with 0.0
-- **Future Redis Integration**: Prepared for external memory storage for pod crash recovery
+
 
 ## API Endpoints
 
@@ -69,8 +69,9 @@ The service outputs features in model-ready format:
 
 Missing lags are filled with `0.0`.
 
-## Usage Example
+## Usage Examples
 
+### Basic Usage
 ```python
 import requests
 
@@ -82,6 +83,43 @@ response = requests.post("http://localhost:8001/add", json={
 
 features = response.json()["features"]
 # features is ready for model service input
+```
+
+### Complete Workflow Example
+```python
+import requests
+
+# Sequential observations to build lag features
+observations = [100.0, 105.0, 110.0, 115.0, 120.0]
+series_id = "time_series_1"
+
+for i, value in enumerate(observations):
+    response = requests.post("http://localhost:8001/add", json={
+        "series_id": series_id,
+        "value": value
+    })
+    
+    result = response.json()
+    print(f"Observation {i+1}: target={result['target']}, lags={result['available_lags']}")
+    
+    # Show lag pattern development
+    if i >= 2:  # After 3rd observation
+        features = result['features']
+        print(f"  in_1 (most recent): {features['in_1']}")
+        print(f"  in_2 (lag_2): {features['in_2']}")
+        print(f"  in_3 (lag_3): {features['in_3']}")
+```
+
+### Integration with Model Service
+```bash
+# Complete pipeline: observation -> features -> model training
+curl -s -X POST http://localhost:8001/add \
+  -H "Content-Type: application/json" \
+  -d '{"series_id": "pipeline", "value": 125.0}' | \
+jq '{features: .features, target: .target}' | \
+curl -s -X POST http://localhost:8000/train \
+  -H "Content-Type: application/json" \
+  --data-binary @-
 ```
 
 ## Development
@@ -124,7 +162,7 @@ bash ../../infra/test_features_model.sh
 - **Max Lags**: 12 (configurable in LagFeatureManager)
 - **Port**: 8001
 - **Output Format**: in_1 to in_12 (model-ready)
-- **Memory**: Internal deque buffers (future Redis integration planned)
+- **Memory**: Internal deque buffers
 
 ## Integration
 
@@ -172,4 +210,4 @@ Input: Time Series Value
     Output: in_1 to in_12
 ```
 
-The service maintains internal state for each time series to calculate lag features efficiently. Future versions will integrate with Redis for persistent memory storage.
+The service maintains internal state for each time series to calculate lag features efficiently.

@@ -8,7 +8,7 @@ The model service provides online learning capabilities with support for multipl
 
 ## Features
 
-- **Multiple Regression Models**: Linear, Ridge, Lasso, Decision Tree, Random Forest
+- **Multiple Regression Models**: Linear, Ridge, Lasso, Decision Tree, Bagging Regressor
 - **Easy Model Switching**: Via MODEL_NAME environment variable
 - **Online Learning**: Real-time predict-then-learn workflow
 - **Single-Step Prediction**: FORECAST_HORIZON=1 for simplified predictions
@@ -106,6 +106,18 @@ Get comprehensive model performance metrics.
 ### `GET /metrics`
 Prometheus-compatible metrics endpoint.
 
+### `POST /feedback`
+Submit feedback about model performance.
+- Accepts any JSON payload
+- Returns confirmation message
+
+**Request:**
+```json
+{
+  "message": "Model performing well"
+}
+```
+
 ### `GET /info`
 Service information including current model.
 
@@ -117,7 +129,6 @@ Service information including current model.
   "forecast_horizon": 1,
   "max_features": 12,
   "regression_model": true,
-  "features_required": true,
   "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]
 }
 ```
@@ -131,8 +142,9 @@ Hardcoded values:
 - `FORECAST_HORIZON`: 1 (single-step prediction)
 - `NUM_FEATURES`: 12 (in_1 to in_12)
 
-## Usage Example
+## Usage Examples
 
+### Basic Training and Prediction
 ```bash
 # Set model type
 export MODEL_NAME=ridge_regression
@@ -142,13 +154,85 @@ curl -X POST http://localhost:8000/train \
   -H "Content-Type: application/json" \
   -d '{"features": {"in_1": 125.0, "in_2": 120.0}, "target": 130.0}'
 
-# Online learning
+# Make prediction
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": 130.0, "in_2": 125.0}}'
+
+# Online learning (predict then learn)
 curl -X POST http://localhost:8000/predict_learn \
   -H "Content-Type: application/json" \
   -d '{"features": {"in_1": 130.0, "in_2": 125.0}, "target": 135.0}'
 
 # Check metrics
 curl http://localhost:8000/model_metrics
+```
+
+### Complete Workflow with All 12 Features
+```bash
+# Train with all 12 input features
+curl -X POST http://localhost:8000/train \
+  -H "Content-Type: application/json" \
+  -d '{
+    "features": {
+      "in_1": 125.0, "in_2": 120.0, "in_3": 115.0, "in_4": 110.0,
+      "in_5": 105.0, "in_6": 100.0, "in_7": 95.0, "in_8": 90.0,
+      "in_9": 85.0, "in_10": 80.0, "in_11": 75.0, "in_12": 70.0
+    },
+    "target": 130.0
+  }'
+
+# Predict with all features
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "features": {
+      "in_1": 130.0, "in_2": 125.0, "in_3": 120.0, "in_4": 115.0,
+      "in_5": 110.0, "in_6": 105.0, "in_7": 100.0, "in_8": 95.0,
+      "in_9": 90.0, "in_10": 85.0, "in_11": 80.0, "in_12": 75.0
+    }
+  }'
+```
+
+### Monitoring and Metrics
+```bash
+# Get comprehensive model metrics
+curl http://localhost:8000/model_metrics
+# Returns: {"default": {"mae": 2.45, "mse": 8.12, "rmse": 2.85, "count": 15, ...}}
+
+# Get Prometheus metrics
+curl http://localhost:8000/metrics
+# Returns: Prometheus format metrics for monitoring
+
+# Submit feedback
+curl -X POST http://localhost:8000/feedback \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Model performing well"}'
+```
+
+### Edge Cases and Validation
+```bash
+# Test with missing features (auto-handled)
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": 140.0, "in_3": 130.0}}'
+
+# Test with unknown features (logged as warnings)
+curl -X POST http://localhost:8000/train \
+  -H "Content-Type: application/json" \
+  -d '{
+    "features": {
+      "in_1": 100.0,
+      "unknown_feature": 999.0,
+      "lag_1": 200.0
+    },
+    "target": 150.0
+  }'
+
+# Test with extreme values
+curl -X POST http://localhost:8000/train \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": -1000.0, "in_2": 0.0, "in_3": 999999.9}, "target": 50.0}'
 ```
 
 ## Integration with Feature Service

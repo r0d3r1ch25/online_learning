@@ -33,8 +33,8 @@ apply:
 .PHONY: argo-hello
 argo-hello:
 	kubectl apply -f infra/workflows/v0/online-learning-pipeline.yaml -n argo
-	echo "CronWorkflow created - runs every 2 minutes"
-	echo "Monitor with: argo list -n argo"
+	echo "CronWorkflow created - runs every minute"
+	echo "Monitor with: argo list -n argo (keeps last 25 successful, 5 failed)"
 	echo "Stop with: kubectl delete cronworkflow online-learning-cron-v0 -n argo"
 
 # Clean up deployments

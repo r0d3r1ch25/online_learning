@@ -43,7 +43,7 @@ online_learning/
 │   │   ├── feast/            # Feature store infrastructure
 │   │   └── monitoring/       # Observability stack
 │   └── workflows/            # Argo workflow definitions
-│       └── v0/               # CronWorkflow (2-minute intervals)
+│       └── v0/               # CronWorkflow (every minute)
 └── Makefile                  # Infrastructure automation
 ```
 
@@ -100,10 +100,10 @@ Once deployed, access services via LoadBalancer:
 ### 3. Run Online Learning Pipeline
 
 ```bash
-# Start CronWorkflow (runs every 2 minutes)
+# Start CronWorkflow (runs every minute)
 make argo-hello
 
-# Monitor workflows
+# Monitor workflows (keeps last 25 successful, 5 failed)
 argo list -n argo
 
 # Stop CronWorkflow
@@ -182,7 +182,7 @@ curl http://<your-ip>:8000/metrics
 - **Up to 12 Inputs**: in_1, in_2, ..., in_12 (feature service provides complete features)
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
 - **12 Input Features**: NUM_FEATURES=12 (hardcoded)
-- **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Random Forest via MODEL_NAME env var
+- **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Bagging Regressor via MODEL_NAME env var
 - **Input Validation**: Unknown features trigger warnings but don't fail
 - **Performance Tracking**: /model_metrics endpoint with MAE, MSE, RMSE
 - **Prometheus Ready**: /metrics endpoint for monitoring stack integration
@@ -203,20 +203,41 @@ make apply           # Deploy all services
 
 ### Service Testing
 ```bash
-# Test monitoring stack + model service (comprehensive)
-python3 infra/test_model_api.py [url]
+# Run unit tests for each service
+pytest pipelines/ingestion_service/tests/ -v
+pytest pipelines/feature_service/tests/ -v
+pytest pipelines/model_service/tests/ -v
 
-# Test feature service independently
-python3 infra/test_features_api.py [url]
-
-# Test feature + model service integration
-bash infra/test_features_model.sh
-
-# Start CronWorkflow (runs every 2 minutes)
+# Start CronWorkflow (runs every minute)
 make argo-hello
 
 # Manual pipeline test (single run)
 bash infra/test_pipeline.sh
+```
+
+### Pipeline Integration Examples
+```bash
+# Complete pipeline: Ingestion -> Features -> Model
+# 1. Get observation from ingestion service
+curl http://localhost:8002/next
+
+# 2. Extract features (pipe ingestion output to feature service)
+curl -s http://localhost:8002/next | \
+  jq '{series_id: "manual_test", value: .target}' | \
+  curl -s -X POST -H "Content-Type: application/json" \
+    --data-binary @- http://localhost:8001/add
+
+# 3. Train model (pipe feature output to model service)
+curl -s http://localhost:8002/next | \
+  jq '{series_id: "manual_test", value: .target}' | \
+  curl -s -X POST -H "Content-Type: application/json" \
+    --data-binary @- http://localhost:8001/add | \
+  jq '{features: .features, target: .target}' | \
+  curl -s -X POST -H "Content-Type: application/json" \
+    --data-binary @- http://localhost:8000/predict_learn
+
+# 4. Check model metrics
+curl http://localhost:8000/model_metrics
 ```
 
 ### Grafana Monitoring
@@ -270,7 +291,7 @@ Each service has automated GitHub Actions that trigger on:
 1. **Ingestion Service** streams time series observations (date, value pairs)
 2. **Feature Service** calculates lag features and outputs model-ready format (in_1 to in_12)
 3. **Model Service** performs online learning using model-ready features and targets
-4. **Argo CronWorkflow** orchestrates the end-to-end pipeline every 2 minutes
+4. **Argo Python CronWorkflow** orchestrates the end-to-end pipeline every minute
 5. **Monitoring Stack** tracks logs and metrics across all services
 
 ## Dataset
@@ -312,7 +333,7 @@ Each microservice has detailed documentation in its respective directory:
 - **[Model Service](pipelines/model_service/README.md)**: Online ML service with multiple regression models
   - **Input Features**: Up to 12 generic inputs (in_1 to in_12) with automatic validation
   - **Forecast Horizon**: Single-step predictions (FORECAST_HORIZON=1)
-  - **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Random Forest
+  - **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Bagging Regressor
   - **Model Switching**: Via MODEL_NAME environment variable
   - **Performance Metrics**: Comprehensive MAE, MSE, RMSE tracking via /model_metrics endpoint
   - **Prometheus Integration**: /metrics endpoint for monitoring stack integration
@@ -350,7 +371,7 @@ All services are automatically built and pushed to Docker Hub:
 
 **Workflow Orchestration**
 - ✅ Argo Workflows installed and configured
-- ✅ Python CronWorkflow v0 ready (runs every 2 minutes)
+- ✅ Python CronWorkflow v0 ready (runs every minute)
 - ✅ Workflow management UI accessible
 
 **Monitoring & Observability**
@@ -429,7 +450,7 @@ curl -X POST http://<your-ip>:8000/train \
   -d '{"features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0}, "target": 130.0}'
 ```
 
-**Predict (3-Step Horizon)**
+**Predict (Single-Step Horizon)**
 ```bash
 curl -X POST http://<your-ip>:8000/predict \
   -H "Content-Type: application/json" \
