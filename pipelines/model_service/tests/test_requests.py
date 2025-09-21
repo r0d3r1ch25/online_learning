@@ -1,7 +1,7 @@
 import pytest
 import logging
 from fastapi.testclient import TestClient
-from service import app, FORECAST_HORIZON
+from service import app
 
 client = TestClient(app)
 
@@ -19,10 +19,11 @@ def test_info():
     data = response.json()
     assert "model_name" in data
     assert "forecast_horizon" in data
-    assert "max_features" in data
-    assert "stateless" in data
-    assert data["stateless"] == True
-    assert data["forecast_horizon"] == FORECAST_HORIZON
+    assert "regression_model" in data
+    assert "available_models" in data
+    assert data["forecast_horizon"] == 1
+    assert data["regression_model"] == True
+    assert "River" in data["model_name"]
 
 def test_train_valid_features():
     payload = {
@@ -63,20 +64,24 @@ def test_train_invalid_payload():
     assert response.status_code == 422  # Validation error
 
 def test_predict_valid_features():
-    # Train first
-    train_payload = {
-        "features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0},
-        "target": 130.0
-    }
-    client.post("/train", json=train_payload)
+    # Train with some observations
+    train_data = [
+        ({"in_1": 125.0, "in_2": 120.0, "in_3": 115.0}, 130.0),
+        ({"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}, 135.0),
+        ({"in_1": 135.0, "in_2": 130.0, "in_3": 125.0}, 140.0)
+    ]
+    
+    for features, target in train_data:
+        train_payload = {"features": features, "target": target}
+        client.post("/train", json=train_payload)
     
     # Then predict
-    payload = {"features": {"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}}
+    payload = {"features": {"in_1": 140.0, "in_2": 135.0, "in_3": 130.0}}
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert "forecast" in data
-    assert len(data["forecast"]) == FORECAST_HORIZON
+    assert len(data["forecast"]) == 1
     for item in data["forecast"]:
         assert "value" in item
         assert isinstance(item["value"], (int, float))
@@ -87,7 +92,7 @@ def test_predict_empty_features():
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert len(data["forecast"]) == FORECAST_HORIZON
+    assert len(data["forecast"]) == 1
 
 def test_predict_unknown_features(caplog):
     """Test prediction with unknown features - should warn and ignore"""
@@ -187,7 +192,7 @@ def test_full_12_inputs():
     assert response.status_code == 200
     data = response.json()
     assert "forecast" in data
-    assert len(data["forecast"]) == FORECAST_HORIZON
+    assert len(data["forecast"]) == 1
     
     # Predict and learn with all 12 inputs
     pred_learn_payload = {

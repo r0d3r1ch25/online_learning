@@ -7,8 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Environment variables with defaults
-ENV FORECAST_HORIZON=3
-ENV NUM_FEATURES=12
+ENV MODEL_NAME=linear_regression
 ENV HOST=0.0.0.0
 ENV PORT=8000
 

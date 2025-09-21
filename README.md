@@ -155,7 +155,7 @@ curl -X POST http://<your-ip>:8000/train \
     "target": 130.0
   }'
 
-# Predict (fixed 3-step horizon, no horizon parameter needed)
+# Predict (single-step horizon)
 curl -X POST http://<your-ip>:8000/predict \
   -H "Content-Type: application/json" \
   -d '{"features": {"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}}'
@@ -174,12 +174,14 @@ curl http://<your-ip>:8000/metrics
 
 **Key Features:**
 - **Up to 12 Inputs**: in_1, in_2, ..., in_12 (missing features handled by imputation)
-- **Build-Time Config**: FORECAST_HORIZON=3, NUM_FEATURES=12 (rebuild to change)
+- **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
+- **12 Input Features**: NUM_FEATURES=12 (hardcoded)
+- **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Random Forest via MODEL_NAME env var
 - **Input Validation**: Unknown features trigger warnings but don't fail
 - **Performance Tracking**: /model_metrics endpoint with MAE, MSE, RMSE
 - **Prometheus Ready**: /metrics endpoint for monitoring stack integration
-- **Imputation**: Missing features handled by River StatImputer with Mean strategy
-- **Stateless Design**: No memory management, features provided externally
+- **Imputation**: Missing features handled by River Mean imputation
+- **Easy Model Switching**: Change MODEL_NAME environment variable
 
 ## Development Commands
 
@@ -299,14 +301,15 @@ Each microservice has detailed documentation in its respective directory:
 
 - **[Ingestion Service](pipelines/ingestion_service/README.md)**: Time series data streaming API with sequential observation delivery
 - **[Feature Service](pipelines/feature_service/README.md)**: Lag feature calculation with model-ready output format (in_1 to in_12)
-- **[Model Service](pipelines/model_service/README.md)**: Stateless online ML service with River LinearRegression
+- **[Model Service](pipelines/model_service/README.md)**: Online ML service with multiple regression models
   - **Input Features**: Up to 12 generic inputs (in_1 to in_12) with automatic validation
-  - **Forecast Horizon**: Fixed 3-step predictions (configurable at build time)
+  - **Forecast Horizon**: Single-step predictions (FORECAST_HORIZON=1)
+  - **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Random Forest
+  - **Model Switching**: Via MODEL_NAME environment variable
   - **Performance Metrics**: Comprehensive MAE, MSE, RMSE tracking via /model_metrics endpoint
   - **Prometheus Integration**: /metrics endpoint for monitoring stack integration
   - **Online Learning**: Real-time predict-then-learn workflow with metrics tracking
-  - **Build-Time Config**: FORECAST_HORIZON and NUM_FEATURES set during Docker build
-  - **Imputation**: Missing features handled by River StatImputer, unknown features warned but ignored
+  - **Imputation**: Missing features handled by River Mean imputation
 
 ## Docker Images
 

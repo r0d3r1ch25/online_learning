@@ -19,9 +19,9 @@ logging.basicConfig(
 
 app = FastAPI(title="Online ML API")
 
-# Configuration
-FORECAST_HORIZON = int(os.getenv("FORECAST_HORIZON", "3"))
-NUM_FEATURES = int(os.getenv("NUM_FEATURES", "12"))
+# Configuration - hardcoded for simplicity
+FORECAST_HORIZON = 1
+NUM_FEATURES = 12
 
 # Models and simple imputation
 mean_imputer = stats.Mean()
@@ -46,19 +46,29 @@ def health():
 @app.get("/info")
 def info():
     return {
-        "model_name": "River LinearRegression",
+        "model_name": f"River {model_manager.model_name.replace('_', ' ').title()}",
         "model_version": "0.22.0",
-        "forecast_horizon": FORECAST_HORIZON,
-        "max_features": NUM_FEATURES,
-        "stateless": True,
-        "memory_managed_externally": True
+        "forecast_horizon": 1,
+        "max_features": 12,
+        "regression_model": True,
+        "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]
     }
 
 @app.post("/train")
 def train(request: TrainRequest):
-    """Train model with features and target"""
+    """Train model with target and generate metrics"""
     try:
         validated_features = _validate_features(request.features)
+        
+        # Make prediction before training for metrics
+        try:
+            pred = model_manager.predict(validated_features)
+            metrics_manager.add("default", request.target, pred)
+        except:
+            # First few observations may not have enough data for prediction
+            pass
+            
+        # Train model
         model_manager.train(validated_features, request.target)
         return {"message": "Model trained successfully"}
     except Exception as e:
@@ -66,22 +76,21 @@ def train(request: TrainRequest):
 
 @app.post("/predict")
 def predict(request: PredictRequest):
-    """Predict multiple steps ahead using same features"""
+    """Predict multiple steps ahead using HoltWinters forecasting"""
     try:
-        # Validate and clean features
+        # Validate features (not used by HoltWinters but kept for compatibility)
         validated_features = _validate_features(request.features)
         
-        forecast = []
-        for _ in range(FORECAST_HORIZON):
-            pred = model_manager.predict(validated_features)
-            forecast.append({"value": pred})
+        # Get multi-step forecast from HoltWinters
+        forecast_values = model_manager.predict_multi_step(validated_features)
+        forecast = [{"value": val} for val in forecast_values]
         return {"forecast": forecast}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 def _validate_features(features: Dict[str, float]) -> Dict[str, float]:
     """Validate features and warn about unknown inputs"""
-    expected_inputs = {f"in_{i}" for i in range(1, NUM_FEATURES + 1)}
+    expected_inputs = {f"in_{i}" for i in range(1, 13)}  # in_1 to in_12
     validated = {}
     
     # Check for unknown inputs
@@ -99,7 +108,7 @@ def _validate_features(features: Dict[str, float]) -> Dict[str, float]:
     # Fill missing features with current mean or 0.0 if no data
     mean_value = mean_imputer.get() if mean_imputer.n > 0 else 0.0
     
-    for i in range(1, NUM_FEATURES + 1):
+    for i in range(1, 13):  # in_1 to in_12
         input_key = f"in_{i}"
         if input_key not in validated:
             validated[input_key] = mean_value

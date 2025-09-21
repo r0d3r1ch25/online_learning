@@ -1,45 +1,57 @@
 # Model Service
 
-Online machine learning service using River for real-time training and prediction with time series data.
+Online machine learning service with multiple regression models for real-time training and prediction.
 
 ## Overview
 
-The Model Service provides stateless online machine learning capabilities using River's LinearRegression algorithm. It accepts model-ready features from the Feature Service and performs real-time training and prediction with comprehensive metrics tracking.
+The model service provides online learning capabilities with support for multiple regression algorithms. It processes model-ready features from the feature service and performs real-time training and prediction with comprehensive metrics tracking.
 
-## Key Features
+## Features
 
-- **Online Learning**: Real-time model training with River LinearRegression
-- **Stateless Design**: No internal memory management, features provided externally
-- **Up to 12 Inputs**: Supports in_1 to in_12 feature format from Feature Service
-- **Imputation**: Missing features handled by River StatImputer with Mean strategy
-- **Fixed Horizon**: 3-step ahead predictions (configurable at build time)
-- **Metrics Tracking**: Comprehensive MAE, MSE, RMSE performance monitoring
-- **Prometheus Integration**: Built-in metrics endpoint for monitoring stack
+- **Multiple Regression Models**: Linear, Ridge, Lasso, Decision Tree, Random Forest
+- **Easy Model Switching**: Via MODEL_NAME environment variable
+- **Online Learning**: Real-time predict-then-learn workflow
+- **Single-Step Prediction**: FORECAST_HORIZON=1 for simplified predictions
+- **Feature Validation**: Up to 12 input features (in_1 to in_12)
+- **Performance Metrics**: MAE, MSE, RMSE tracking
+- **Prometheus Integration**: Metrics endpoint for monitoring
+- **Imputation**: Missing features handled automatically
+
+## Model Selection
+
+Change the model by setting the MODEL_NAME environment variable:
+
+```bash
+# Available models:
+export MODEL_NAME=linear_regression    # Default - Linear Regression with StandardScaler
+export MODEL_NAME=ridge_regression     # Ridge Regression (L2 regularization)
+export MODEL_NAME=lasso_regression     # Lasso Regression (L1 regularization)  
+export MODEL_NAME=decision_tree        # Hoeffding Tree Regressor
+export MODEL_NAME=random_forest        # Adaptive Random Forest Regressor
+```
 
 ## API Endpoints
 
-### Health Check
-```bash
-GET /health
-```
+### `POST /train`
+Train the model with features and target value.
+- Generates metrics by predicting before training
+- Updates model with new observation
 
-### Service Information
-```bash
-GET /info
-```
-
-### Train Model
-```bash
-POST /train
+**Request:**
+```json
 {
   "features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0},
   "target": 130.0
 }
 ```
 
-### Predict (3-Step Horizon)
-```bash
-POST /predict
+### `POST /predict`
+Make prediction using current model state.
+- Returns single-step forecast
+- Does not update model
+
+**Request:**
+```json
 {
   "features": {"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}
 }
@@ -48,156 +60,131 @@ POST /predict
 **Response:**
 ```json
 {
-  "forecast": [
-    {"value": 135.2},
-    {"value": 135.2},
-    {"value": 135.2}
-  ]
+  "forecast": [{"value": 135.2}]
 }
 ```
 
-### Online Learning (Predict then Learn)
-```bash
-POST /predict_learn
+### `POST /predict_learn`
+Predict then learn from actual value (online learning).
+- Makes prediction first
+- Updates model with actual value
+- Generates metrics comparing prediction vs actual
+
+**Request:**
+```json
 {
-  "features": {"in_1": 135.0, "in_2": 130.0},
+  "features": {"in_1": 135.0, "in_2": 130.0, "in_3": 125.0},
   "target": 140.0
 }
-```
-
-### Model Performance Metrics
-```bash
-GET /model_metrics
 ```
 
 **Response:**
 ```json
 {
+  "prediction": 138.7
+}
+```
+
+### `GET /model_metrics`
+Get comprehensive model performance metrics.
+
+**Response:**
+```json
+{
   "default": {
-    "count": 5,
     "mae": 2.45,
     "mse": 8.12,
     "rmse": 2.85,
-    "last_prediction": 135.2,
+    "count": 15,
+    "last_prediction": 138.7,
     "last_actual": 140.0,
-    "last_error": 4.8
+    "last_error": -1.3
   }
 }
 ```
 
-### Prometheus Metrics
-```bash
-GET /metrics
-```
+### `GET /metrics`
+Prometheus-compatible metrics endpoint.
 
-### Submit Feedback
-```bash
-POST /feedback
+### `GET /info`
+Service information including current model.
+
+**Response:**
+```json
 {
-  "message": "Model performing well"
+  "model_name": "River Linear Regression",
+  "model_version": "0.22.0",
+  "forecast_horizon": 1,
+  "max_features": 12,
+  "regression_model": true,
+  "features_required": true,
+  "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "random_forest"]
 }
 ```
 
 ## Configuration
 
-- **Forecast Horizon**: 3 steps (configurable via FORECAST_HORIZON env var)
-- **Max Features**: 12 (configurable via NUM_FEATURES env var)
-- **Port**: 8000
-- **Imputation Strategy**: Mean imputation for missing features
+Environment variables:
+- `MODEL_NAME`: Model type (default: "linear_regression")
 
-## Input Validation
+Hardcoded values:
+- `FORECAST_HORIZON`: 1 (single-step prediction)
+- `NUM_FEATURES`: 12 (in_1 to in_12)
 
-- **Expected Features**: in_1 to in_12 format from Feature Service
-- **Missing Features**: Handled by River StatImputer with Mean strategy
-- **Unknown Features**: Logged as warnings but ignored
-- **Feature Range**: No restrictions, handles any numeric values
+## Usage Example
+
+```bash
+# Set model type
+export MODEL_NAME=ridge_regression
+
+# Train model
+curl -X POST http://localhost:8000/train \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": 125.0, "in_2": 120.0}, "target": 130.0}'
+
+# Online learning
+curl -X POST http://localhost:8000/predict_learn \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"in_1": 130.0, "in_2": 125.0}, "target": 135.0}'
+
+# Check metrics
+curl http://localhost:8000/model_metrics
+```
+
+## Integration with Feature Service
+
+The model service expects model-ready features from the feature service:
+
+```bash
+# Feature service output -> Model service input
+{
+  "features": {"in_1": 120.0, "in_2": 115.0, ...},  # Previous observations as lags
+  "target": 125.0                                    # Current observation as target
+}
+```
 
 ## Development
 
-### Local Development
+### Run locally
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Run service
 python main.py
+```
 
-# Run tests
+### Run tests
+```bash
 pytest tests/ -v
 ```
 
 ### Docker
 ```bash
-# Build image
 docker build -t ml-model .
-
-# Run container
-docker run -p 8000:8000 ml-model
+docker run -p 8000:8000 -e MODEL_NAME=ridge_regression ml-model
 ```
-
-### Test Deployed Service
-```bash
-# Test locally
-python3 ../../infra/test_model_api.py
-
-# Test deployed service
-python3 ../../infra/test_model_api.py http://<your-ip>:8000
-
-# Test integration with feature service
-bash ../../infra/test_features_model.sh
-```
-
-## Integration
-
-### With Feature Service
-Receives model-ready features directly from Feature Service:
-
-```python
-# Feature service provides
-features = {"in_1": 125.0, "in_2": 120.0, ..., "in_12": 0.0}
-
-# Model service consumes directly
-requests.post("http://model-service:8000/train", json={
-    "features": features,
-    "target": 130.0
-})
-```
-
-### Monitoring Integration
-- **Prometheus**: Scrapes `/metrics` endpoint every 30 seconds
-- **Grafana**: Visualizes model performance metrics
-- **Metrics Available**: MAE, MSE, RMSE, prediction count, last values
 
 ## Deployment
 
 - **Docker Image**: `r0d3r1ch25/ml-model:latest`
-- **Kubernetes**: Deployed in `ml-services` namespace
-- **Port**: 8000
-- **Health Check**: `/health` endpoint
-- **Resource Limits**: 512Mi memory, 500m CPU
-
-## Performance Metrics
-
-The service tracks comprehensive performance metrics:
-
-- **MAE**: Mean Absolute Error
-- **MSE**: Mean Squared Error
-- **RMSE**: Root Mean Squared Error
-- **Count**: Total number of predictions
-- **Last Values**: Most recent prediction, actual, and error
-
-## Architecture
-
-```
-Input: Model-Ready Features (in_1 to in_12)
-         ↓
-    Feature Imputation (River StatImputer)
-         ↓
-    Online Learning (River LinearRegression)
-         ↓
-    Prediction/Training + Metrics Tracking
-         ↓
-    Output: Predictions + Performance Metrics
-```
-
-The service is designed for high-throughput online learning scenarios with real-time feature processing and comprehensive monitoring capabilities.
+- **Kubernetes Port**: 8000
+- **LoadBalancer**: Accessible at `http://<your-ip>:8000`
+- **CI/CD**: Automated build/push on changes to `pipelines/model_service/**`
