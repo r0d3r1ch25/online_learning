@@ -14,9 +14,20 @@ class TestModelServiceIntegration:
     def setup_method(self):
         """Setup for each test method"""
         self.base_url = "http://localhost:8000"
+        
+    def _check_service_available(self):
+        """Check if service is available, skip test if not"""
+        try:
+            response = requests.get(f"{self.base_url}/health", timeout=2)
+            return response.status_code == 200
+        except:
+            return False
     
     def test_complete_training_workflow(self):
         """Test complete training workflow with multiple observations"""
+        if not self._check_service_available():
+            pytest.skip("Model service not available - skipping integration test")
+            
         # Train with progressive complexity
         training_data = [
             ({"in_1": 125.0, "in_2": 120.0, "in_3": 115.0}, 130.0),
@@ -35,6 +46,9 @@ class TestModelServiceIntegration:
     
     def test_prediction_workflow(self):
         """Test prediction workflow after training"""
+        if not self._check_service_available():
+            pytest.skip("Model service not available - skipping integration test")
+            
         # Train first
         requests.post(f"{self.base_url}/train", json={
             "features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0},
@@ -54,6 +68,9 @@ class TestModelServiceIntegration:
     
     def test_predict_learn_workflow(self):
         """Test predict_learn workflow (online learning)"""
+        if not self._check_service_available():
+            pytest.skip("Model service not available - skipping integration test")
+            
         response = requests.post(f"{self.base_url}/predict_learn", json={
             "features": {"in_1": 140.0, "in_2": 135.0, "in_3": 130.0},
             "target": 145.0
@@ -66,6 +83,9 @@ class TestModelServiceIntegration:
     
     def test_all_12_inputs(self):
         """Test model with all 12 input features"""
+        if not self._check_service_available():
+            pytest.skip("Model service not available - skipping integration test")
+            
         all_features = {
             f"in_{i}": 125.0 - i * 5 for i in range(1, 13)
         }
@@ -87,6 +107,9 @@ class TestModelServiceIntegration:
     
     def test_input_validation(self):
         """Test input validation with unknown features"""
+        if not self._check_service_available():
+            pytest.skip("Model service not available - skipping integration test")
+            
         # This should work but log warnings
         response = requests.post(f"{self.base_url}/train", json={
             "features": {
@@ -100,6 +123,9 @@ class TestModelServiceIntegration:
     
     def test_edge_cases(self):
         """Test edge cases with extreme values"""
+        if not self._check_service_available():
+            pytest.skip("Model service not available - skipping integration test")
+            
         # Test with extreme values
         response = requests.post(f"{self.base_url}/train", json={
             "features": {"in_1": -1000.0, "in_2": 0.0, "in_3": 999999.9},
@@ -115,6 +141,9 @@ class TestModelServiceIntegration:
     
     def test_metrics_endpoints(self):
         """Test metrics endpoints"""
+        if not self._check_service_available():
+            pytest.skip("Model service not available - skipping integration test")
+            
         # Generate some predictions first
         requests.post(f"{self.base_url}/predict_learn", json={
             "features": {"in_1": 135.0, "in_2": 130.0, "in_3": 125.0},
@@ -134,6 +163,9 @@ class TestModelServiceIntegration:
     
     def test_feedback_endpoint(self):
         """Test feedback endpoint"""
+        if not self._check_service_available():
+            pytest.skip("Model service not available - skipping integration test")
+            
         response = requests.post(f"{self.base_url}/feedback", json={
             "message": "Model performing well with new features"
         })
