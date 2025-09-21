@@ -43,6 +43,7 @@ online_learning/
 │   │   ├── feast/            # Feature store infrastructure
 │   │   └── monitoring/       # Observability stack
 │   └── workflows/            # Argo workflow definitions
+│       ├── v0/               # CronWorkflow (2-minute intervals)
 │       └── v1/               # Online learning pipeline v1
 └── Makefile                  # Infrastructure automation
 ```
@@ -100,8 +101,14 @@ Once deployed, access services via LoadBalancer:
 ### 3. Run Online Learning Pipeline
 
 ```bash
-# Submit workflow to Argo
-argo submit -n argo infra/workflows/v1/online-learning-pipeline.yaml
+# Start CronWorkflow (runs every 2 minutes)
+make argo-hello
+
+# Monitor workflows
+argo list -n argo
+
+# Stop CronWorkflow
+kubectl delete cronworkflow online-learning-cron-v0 -n argo
 
 # Monitor in Argo UI
 open https://<your-ip>:2746
@@ -206,8 +213,11 @@ python3 infra/test_features_api.py [url]
 # Test feature + model service integration
 bash infra/test_features_model.sh
 
-# Test Argo installation
+# Start CronWorkflow (runs every 2 minutes)
 make argo-hello
+
+# Manual pipeline test (single run)
+bash infra/test_pipeline.sh
 ```
 
 ### Grafana Monitoring
@@ -261,7 +271,7 @@ Each service has automated GitHub Actions that trigger on:
 1. **Ingestion Service** streams time series observations (date, value pairs)
 2. **Feature Service** calculates lag features and outputs model-ready format (in_1 to in_12)
 3. **Model Service** performs online learning using model-ready features and targets
-4. **Argo Workflows** orchestrate the end-to-end pipeline
+4. **Argo CronWorkflow** orchestrates the end-to-end pipeline every 2 minutes
 5. **Monitoring Stack** tracks logs and metrics across all services
 
 ## Dataset
@@ -341,7 +351,7 @@ All services are automatically built and pushed to Docker Hub:
 
 **Workflow Orchestration**
 - ✅ Argo Workflows installed and configured
-- ✅ Online learning pipeline v1 ready
+- ✅ CronWorkflow v0 ready (runs every 2 minutes)
 - ✅ Workflow management UI accessible
 
 **Monitoring & Observability**

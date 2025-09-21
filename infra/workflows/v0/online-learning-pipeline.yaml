@@ -10,31 +10,31 @@ spec:
     templates:
     - name: single-pipeline-step
       container:
-        image: curlimages/curl:latest
+        image: alpine/curl:latest
         command: [sh, -c]
         args:
           - |
             echo "Processing observation at $(date)"
             
             # Get observation
-            OBSERVATION=$(curl -s "http://ingestion-service.ml-services.svc.cluster.local:8002/next")
+            OBSERVATION=$(curl -s --max-time 10 "http://ingestion-service.ml-services.svc.cluster.local:8002/next")
             if [ $? -ne 0 ]; then
               echo "No more observations available"
               exit 0
             fi
             
             ACTUAL_VALUE=$(echo "$OBSERVATION" | jq -r '.target')
-            echo "Actual value: $ACTUAL_VALUE"
+            echo "Actual: $ACTUAL_VALUE"
             
             # Get features and predict_learn
             RESULT=$(echo "$OBSERVATION" | \
               jq '{series_id: "argo_cron_pipeline", value: .target}' | \
-              curl -s -X POST \
+              curl -s --max-time 10 -X POST \
                 -H "Content-Type: application/json" \
                 --data-binary @- \
                 "http://feature-service.ml-services.svc.cluster.local:8001/add" | \
               jq '{features: .features, target: .target}' | \
-              curl -s -X POST \
+              curl -s --max-time 10 -X POST \
                 -H "Content-Type: application/json" \
                 --data-binary @- \
                 "http://model-service.ml-services.svc.cluster.local:8000/predict_learn")
@@ -42,8 +42,7 @@ spec:
             PREDICTION=$(echo "$RESULT" | jq -r '.prediction')
             echo "Prediction: $PREDICTION"
             echo "Actual: $ACTUAL_VALUE | Prediction: $PREDICTION"
-            
-            echo "Pipeline step completed at $(date)"
+            echo "Completed at $(date)"
         resources:
           requests:
             memory: "64Mi"
