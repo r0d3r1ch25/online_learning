@@ -43,8 +43,7 @@ online_learning/
 │   │   ├── feast/            # Feature store infrastructure
 │   │   └── monitoring/       # Observability stack
 │   └── workflows/            # Argo workflow definitions
-│       ├── v0/               # CronWorkflow (2-minute intervals)
-│       └── v1/               # Online learning pipeline v1
+│       └── v0/               # CronWorkflow (2-minute intervals)
 └── Makefile                  # Infrastructure automation
 ```
 
@@ -351,7 +350,7 @@ All services are automatically built and pushed to Docker Hub:
 
 **Workflow Orchestration**
 - ✅ Argo Workflows installed and configured
-- ✅ CronWorkflow v0 ready (runs every 2 minutes)
+- ✅ Python CronWorkflow v0 ready (runs every 2 minutes)
 - ✅ Workflow management UI accessible
 
 **Monitoring & Observability**
