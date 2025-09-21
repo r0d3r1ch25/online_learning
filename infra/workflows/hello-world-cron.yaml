@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: hello-world-cron-30s
+spec:
+  schedule: "*/30 * * * * *"  # Every 30 seconds (6-field format with seconds)
+  timezone: "UTC"
+  successfulJobsHistoryLimit: 10  # Keep last 10 successful workflows
+  failedJobsHistoryLimit: 3       # Keep last 3 failed workflows
+  workflowSpec:
+    entrypoint: hello-world
+    templates:
+    - name: hello-world
+      script:
+        image: python:3.11-alpine
+        command: ["python"]
+        source: |
+          import datetime
+          import time
+          
+          print(f"Hello World! Current time: {datetime.datetime.now()}", flush=True)
+          print(f"This CronWorkflow runs every 30 seconds", flush=True)
+          print(f"Testing Argo CronWorkflow 6-field cron format", flush=True)
+          
+          # Simple countdown to show execution time
+          for i in range(3, 0, -1):
+              print(f"Countdown: {i}", flush=True)
+              time.sleep(1)
+          
+          print(f"Task completed at: {datetime.datetime.now()}", flush=True)
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
