@@ -29,10 +29,13 @@ cluster-down:
 apply:
 	kubectl apply -k infra/k8s/
 
-# Test Argo Workflows
+# Start Argo CronWorkflow
 .PHONY: argo-hello
 argo-hello:
-	argo submit -n argo --watch infra/workflows/v0/online-learning-pipeline.yaml
+	kubectl apply -f infra/workflows/v0/online-learning-pipeline.yaml -n argo
+	echo "CronWorkflow created - runs every 2 minutes"
+	echo "Monitor with: argo list -n argo"
+	echo "Stop with: kubectl delete cronworkflow online-learning-cron-v0 -n argo"
 
 # Clean up deployments
 .PHONY: clean
