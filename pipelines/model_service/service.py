@@ -18,9 +18,8 @@ logging.basicConfig(
 
 app = FastAPI(title="Online ML API")
 
-# Configuration - hardcoded for simplicity
+# Configuration
 FORECAST_HORIZON = 1
-NUM_FEATURES = 12
 
 # Models
 model_manager = ModelManager()
@@ -46,8 +45,8 @@ def info():
     return {
         "model_name": f"River {model_manager.model_name.replace('_', ' ').title()}",
         "model_version": "0.22.0",
-        "forecast_horizon": 1,
-        "max_features": 12,
+        "forecast_horizon": FORECAST_HORIZON,
+        "feature_agnostic": True,
         "regression_model": True,
         "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]
     }
@@ -56,18 +55,16 @@ def info():
 def train(request: TrainRequest):
     """Train model with target and generate metrics"""
     try:
-        validated_features = _validate_features(request.features)
-        
         # Make prediction before training for metrics
         try:
-            pred = model_manager.predict(validated_features)
+            pred = model_manager.predict(request.features)
             metrics_manager.add("default", request.target, pred)
         except:
             # First few observations may not have enough data for prediction
             pass
             
         # Train model
-        model_manager.train(validated_features, request.target)
+        model_manager.train(request.features, request.target)
         return {"message": "Model trained successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -76,44 +73,22 @@ def train(request: TrainRequest):
 def predict(request: PredictRequest):
     """Predict using regression model"""
     try:
-        # Validate and clean features
-        validated_features = _validate_features(request.features)
-        
         # Get forecast from regression model
-        forecast_values = model_manager.predict_multi_step(validated_features)
+        forecast_values = model_manager.predict_multi_step(request.features)
         forecast = [{"value": val} for val in forecast_values]
         return {"forecast": forecast}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-def _validate_features(features: Dict[str, float]) -> Dict[str, float]:
-    """Validate features and warn about unknown inputs"""
-    expected_inputs = {f"in_{i}" for i in range(1, 13)}  # in_1 to in_12
-    validated = {}
-    
-    # Check for unknown inputs and keep only expected ones
-    for key in features:
-        if key not in expected_inputs:
-            logging.warning(f"Unknown input feature: {key}")
-        else:
-            validated[key] = features[key]
-    
-    return validated
-
 @app.post("/predict_learn")
 def predict_learn(request: PredictLearnRequest):
     """Predict then learn from target"""
     try:
-        validated_features = _validate_features(request.features)
-        pred = model_manager.predict_learn(validated_features, request.target)
+        pred = model_manager.predict_learn(request.features, request.target)
         metrics_manager.add("default", request.target, pred)
         return {"prediction": pred}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/feedback")
-def feedback(data: dict):
-    return {"message": "Feedback received successfully"}
 
 @app.get("/model_metrics")
 def model_metrics():

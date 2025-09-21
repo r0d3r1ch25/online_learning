@@ -50,9 +50,14 @@ def main():
         available_lags = feature_result.get('available_lags', 0)
         log(f"SUCCESS: Features extracted: {len(features)} inputs, {available_lags} lags available")
         
-        # Show sample features for debugging
-        feature_sample = {k: v for k, v in list(features.items())[:5]}
-        log(f"  Sample features: {feature_sample}...")
+        # Show all features for debugging
+        log(f"  All features: {features}")
+        log("  Feature breakdown:")
+        num_features = len([k for k in features.keys() if k.startswith('in_')])
+        for i in range(1, num_features + 1):
+            key = f"in_{i}"
+            value = features.get(key, 0.0)
+            log(f"    {key}: {value}")
         
         # Step 3: Model prediction and learning
         log("[3/4] Sending to model service (predict_learn)...")

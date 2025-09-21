@@ -1,13 +1,17 @@
 from typing import Dict, List, Optional
 from collections import deque
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+
+# Configuration - change this value to adjust number of lags
+N_LAGS = int(os.getenv('N_LAGS', '12'))
 
 class LagFeatureManager:
     """Manages lag feature computation for time series data."""
     
-    def __init__(self, max_lags: int = 12):
+    def __init__(self, max_lags: int = N_LAGS):
         self.max_lags = max_lags
         self.series_buffers: Dict[str, deque] = {}
     
