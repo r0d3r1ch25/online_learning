@@ -32,9 +32,17 @@ apply:
 # Start Argo CronWorkflow
 .PHONY: argo-hello
 argo-hello:
-	kubectl apply -f infra/workflows/v0/online-learning-pipeline.yaml -n argo
-	echo "CronWorkflow created - runs every minute"
+	kubectl apply -f infra/workflows/v1/online-learning-pipeline-v1.yaml -n argo
+	echo "CronWorkflow v1 created - runs every minute with baked Docker image"
 	echo "Monitor with: argo list -n argo (keeps last 25 successful, 5 failed)"
+	echo "Stop with: kubectl delete cronworkflow online-learning-cron-v1 -n argo"
+
+# Start v0 CronWorkflow (inline script)
+.PHONY: argo-v0
+argo-v0:
+	kubectl apply -f infra/workflows/v0/online-learning-pipeline.yaml -n argo
+	echo "CronWorkflow v0 created - runs every minute with inline script"
+	echo "Monitor with: argo list -n argo"
 	echo "Stop with: kubectl delete cronworkflow online-learning-cron-v0 -n argo"
 
 # Clean up deployments

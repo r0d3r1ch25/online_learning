@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: online-learning-cron-v1
+spec:
+  schedule: "* * * * *"  # Every minute (standard 5-field cron format)
+  timezone: "UTC"
+  successfulJobsHistoryLimit: 25  # Keep last 25 successful workflows
+  failedJobsHistoryLimit: 5       # Keep last 5 failed workflows
+  workflowSpec:
+    entrypoint: e2e-pipeline
+    templates:
+    - name: e2e-pipeline
+      container:
+        image: r0d3r1ch25/ml-e2e-job:latest
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
