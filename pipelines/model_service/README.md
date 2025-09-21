@@ -8,14 +8,15 @@ The model service provides online learning capabilities with support for multipl
 
 ## Features
 
+- **Feature Agnostic**: Accepts any number of input features dynamically
 - **Multiple Regression Models**: Linear, Ridge, Lasso, Decision Tree, Bagging Regressor
 - **Easy Model Switching**: Via MODEL_NAME environment variable
 - **Online Learning**: Real-time predict-then-learn workflow
 - **Single-Step Prediction**: FORECAST_HORIZON=1 for simplified predictions
-- **Feature Validation**: Up to 12 input features (in_1 to in_12)
+- **No Feature Validation**: River handles any feature set automatically
 - **Performance Metrics**: MAE, MSE, RMSE tracking
 - **Prometheus Integration**: Metrics endpoint for monitoring
-- **Feature Processing**: Receives complete features from feature service
+- **River Integration**: Leverages River's adaptive capabilities
 
 ## Model Selection
 
@@ -106,18 +107,6 @@ Get comprehensive model performance metrics.
 ### `GET /metrics`
 Prometheus-compatible metrics endpoint.
 
-### `POST /feedback`
-Submit feedback about model performance.
-- Accepts any JSON payload
-- Returns confirmation message
-
-**Request:**
-```json
-{
-  "message": "Model performing well"
-}
-```
-
 ### `GET /info`
 Service information including current model.
 
@@ -127,7 +116,7 @@ Service information including current model.
   "model_name": "River Linear Regression",
   "model_version": "0.22.0",
   "forecast_horizon": 1,
-  "max_features": 12,
+  "feature_agnostic": true,
   "regression_model": true,
   "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]
 }
@@ -204,35 +193,19 @@ curl http://localhost:8000/model_metrics
 curl http://localhost:8000/metrics
 # Returns: Prometheus format metrics for monitoring
 
-# Submit feedback
-curl -X POST http://localhost:8000/feedback \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Model performing well"}'
 ```
 
-### Edge Cases and Validation
+### Feature Flexibility
 ```bash
-# Test with missing features (auto-handled)
+# Works with any number of features
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 140.0, "in_3": 130.0}}'
+  -d '{"features": {"in_1": 140.0, "in_3": 130.0, "custom_feature": 99.0}}'
 
-# Test with unknown features (logged as warnings)
+# River adapts to any feature set
 curl -X POST http://localhost:8000/train \
   -H "Content-Type: application/json" \
-  -d '{
-    "features": {
-      "in_1": 100.0,
-      "unknown_feature": 999.0,
-      "lag_1": 200.0
-    },
-    "target": 150.0
-  }'
-
-# Test with extreme values
-curl -X POST http://localhost:8000/train \
-  -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": -1000.0, "in_2": 0.0, "in_3": 999999.9}, "target": 50.0}'
+  -d '{"features": {"lag_1": 100.0, "trend": 0.5}, "target": 150.0}'
 ```
 
 ## Integration with Feature Service

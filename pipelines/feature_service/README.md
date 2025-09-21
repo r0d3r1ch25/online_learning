@@ -159,10 +159,24 @@ bash ../../infra/test_features_model.sh
 
 ## Configuration
 
-- **Max Lags**: 12 (configurable in LagFeatureManager)
+- **N_LAGS**: Configurable via environment variable (default: 12)
 - **Port**: 8001
-- **Output Format**: in_1 to in_12 (model-ready)
+- **Output Format**: in_1 to in_{N_LAGS} (model-ready)
 - **Memory**: Internal deque buffers
+
+### Changing Number of Lags
+```bash
+# Change via environment variable
+export N_LAGS=8  # Creates in_1 to in_8
+
+# Or in Docker
+docker run -e N_LAGS=8 r0d3r1ch25/ml-features:latest
+
+# Or in Kubernetes
+env:
+- name: N_LAGS
+  value: "8"
+```
 
 ## Integration
 

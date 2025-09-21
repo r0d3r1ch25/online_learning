@@ -22,6 +22,9 @@ This job runs the complete online learning pipeline:
 
 ### Local Development
 ```bash
+# Run tests
+PYTHONPATH=. pytest tests/ -v
+
 # Build image
 docker build -t ml-e2e-job .
 
@@ -45,6 +48,23 @@ argo logs -n argo -f online-learning-cron-v1-<timestamp>
 - **Timeouts**: 10 seconds for all HTTP requests
 - **Series ID**: `argo_e2e_pipeline` for identification
 
+## Testing
+
+Comprehensive unit tests with mocked service dependencies:
+
+```bash
+# Run tests locally
+cd jobs/e2e_job
+PYTHONPATH=. pytest tests/ -v
+```
+
+### Test Coverage
+- **Pipeline flow**: Complete workflow testing
+- **Error handling**: HTTP errors and stream exhaustion
+- **Feature logging**: Verbose output verification
+- **Service mocking**: No actual services required
+- **CI/CD integration**: Tests run before image build
+
 ## Docker Image
 
 - **Registry**: `r0d3r1ch25/ml-e2e-job:latest`
@@ -52,4 +72,4 @@ argo logs -n argo -f online-learning-cron-v1-<timestamp>
 - **Platform**: `linux/arm64` (macOS k3d compatible)
 - **Base**: `python:3.11-alpine` (lightweight)
 - **Size**: ~50MB
-- **CI/CD**: Automated build on changes to `jobs/e2e_job/**`
+- **CI/CD**: Automated test + build on changes to `jobs/e2e_job/**`

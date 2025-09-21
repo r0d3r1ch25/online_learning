@@ -45,17 +45,15 @@ def test_train_missing_features():
     response = client.post("/train", json=payload)
     assert response.status_code == 200
 
-def test_train_unknown_features(caplog):
-    """Test training with unknown feature names - should warn"""
-    with caplog.at_level(logging.WARNING):
-        payload = {
-            "features": {"in_1": 125.0, "unknown_feature": 999.0, "lag_1": 100.0},
-            "target": 130.0
-        }
-        response = client.post("/train", json=payload)
-        assert response.status_code == 200
-        assert "Unknown input feature: unknown_feature" in caplog.text
-        assert "Unknown input feature: lag_1" in caplog.text
+def test_train_unknown_features():
+    """Test training with any feature names - feature agnostic"""
+    payload = {
+        "features": {"in_1": 125.0, "unknown_feature": 999.0, "lag_1": 100.0},
+        "target": 130.0
+    }
+    response = client.post("/train", json=payload)
+    assert response.status_code == 200
+    # River accepts any features - no warnings expected
 
 def test_train_invalid_payload():
     """Test training with invalid payload structure"""
@@ -94,16 +92,14 @@ def test_predict_empty_features():
     data = response.json()
     assert len(data["forecast"]) == 1
 
-def test_predict_unknown_features(caplog):
-    """Test prediction with unknown features - should warn and ignore"""
-    with caplog.at_level(logging.WARNING):
-        payload = {
-            "features": {"in_1": 130.0, "bad_feature": 999.0, "lag_5": 100.0}
-        }
-        response = client.post("/predict", json=payload)
-        assert response.status_code == 200
-        assert "Unknown input feature: bad_feature" in caplog.text
-        assert "Unknown input feature: lag_5" in caplog.text
+def test_predict_unknown_features():
+    """Test prediction with any features - feature agnostic"""
+    payload = {
+        "features": {"in_1": 130.0, "bad_feature": 999.0, "lag_5": 100.0}
+    }
+    response = client.post("/predict", json=payload)
+    assert response.status_code == 200
+    # River accepts any features - no warnings expected
 
 def test_predict_learn_valid():
     payload = {
@@ -131,12 +127,7 @@ def test_predict_learn_invalid_target():
     response = client.post("/predict_learn", json=payload)
     assert response.status_code == 422
 
-def test_feedback():
-    payload = {"message": "test feedback"}
-    response = client.post("/feedback", json=payload)
-    assert response.status_code == 200
-    data = response.json()
-    assert "message" in data
+# Feedback endpoint removed - feature-agnostic model service
 
 def test_model_metrics():
     # Train and predict_learn to generate metrics

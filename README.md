@@ -190,11 +190,11 @@ curl http://<your-ip>:8000/metrics
 ```
 
 **Key Features:**
-- **Up to 12 Inputs**: in_1, in_2, ..., in_12 (feature service provides complete features)
+- **Feature Agnostic**: Accepts any number of input features dynamically
+- **Configurable Lags**: N_LAGS environment variable controls feature service output (default: 12)
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
-- **12 Input Features**: NUM_FEATURES=12 (hardcoded)
 - **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Bagging Regressor via MODEL_NAME env var
-- **Input Validation**: Unknown features trigger warnings but don't fail
+- **No Feature Validation**: River models handle any feature set automatically
 - **Performance Tracking**: /model_metrics endpoint with MAE, MSE, RMSE
 - **Prometheus Ready**: /metrics endpoint for monitoring stack integration
 - **Easy Model Switching**: Change MODEL_NAME environment variable
@@ -297,6 +297,11 @@ Each service has automated GitHub Actions that trigger on:
 - Builds Docker image  
 - Pushes to Docker Hub: `r0d3r1ch25/ml-model:latest`
 
+#### E2E Job (`jobs/e2e_job/**`)
+- Runs pytest tests with mocked services
+- Builds Docker image
+- Pushes to Docker Hub: `r0d3r1ch25/ml-e2e-job:latest`
+
 ## Data Flow
 
 1. **Ingestion Service** streams time series observations (date, value pairs)
@@ -304,6 +309,25 @@ Each service has automated GitHub Actions that trigger on:
 3. **Model Service** performs online learning using model-ready features and targets
 4. **Argo Python CronWorkflow** orchestrates the end-to-end pipeline every minute
 5. **Monitoring Stack** tracks logs and metrics across all services
+
+## Configuration
+
+### Feature Configuration
+The number of lag features can be configured via environment variable:
+
+```bash
+# Change number of lag features (default: 12)
+export N_LAGS=8  # Creates in_1 to in_8
+
+# Feature service will generate: in_1, in_2, ..., in_8
+# Model service automatically adapts to any number of features
+```
+
+### Model Configuration
+```bash
+# Change model type
+export MODEL_NAME=ridge_regression  # Options: linear_regression, ridge_regression, lasso_regression, decision_tree, bagging_regressor
+```
 
 ## Dataset
 
@@ -341,15 +365,15 @@ Each microservice has detailed documentation in its respective directory:
 
 - **[Ingestion Service](pipelines/ingestion_service/README.md)**: Time series data streaming API with sequential observation delivery
 - **[Feature Service](pipelines/feature_service/README.md)**: Lag feature calculation with model-ready output format (in_1 to in_12)
-- **[Model Service](pipelines/model_service/README.md)**: Online ML service with multiple regression models
-  - **Input Features**: Up to 12 generic inputs (in_1 to in_12) with automatic validation
+- **[Model Service](pipelines/model_service/README.md)**: Feature-agnostic online ML service with multiple regression models
+  - **Feature Agnostic**: Accepts any number of input features dynamically
   - **Forecast Horizon**: Single-step predictions (FORECAST_HORIZON=1)
   - **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Bagging Regressor
   - **Model Switching**: Via MODEL_NAME environment variable
   - **Performance Metrics**: Comprehensive MAE, MSE, RMSE tracking via /model_metrics endpoint
   - **Prometheus Integration**: /metrics endpoint for monitoring stack integration
   - **Online Learning**: Real-time predict-then-learn workflow with metrics tracking
-  - **Feature Processing**: Receives complete features from feature service
+  - **River Integration**: Leverages River's adaptive capabilities
 
 ## Docker Images
 
