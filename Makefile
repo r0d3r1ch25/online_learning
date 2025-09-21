@@ -32,10 +32,7 @@ apply:
 # Start Argo CronWorkflow
 .PHONY: argo-e2e
 argo-e2e:
-	kubectl apply -f infra/workflows/v1/online-learning-pipeline-v1.yaml -n argo
-	echo "CronWorkflow v1 created - runs every minute with baked Docker image"
-	echo "Monitor with: argo list -n argo (keeps last 25 successful, 5 failed)"
-	echo "Stop with: kubectl delete cronworkflow online-learning-cron-v1 -n argo"
+	kubectl apply -f infra/workflows/v1/online-learning-pipeline-v1.yaml -n argo && argo cron list -n argo
 
 # Reset cluster with latest code
 .PHONY: again

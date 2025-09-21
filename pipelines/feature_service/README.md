@@ -10,26 +10,42 @@ The Feature Service processes time series observations and extracts lag features
 
 - **Lag Feature Calculation**: Computes up to 12 lag features from time series data
 - **Model-Ready Output**: Returns features in `in_1` to `in_12` format for direct model input
-- **Multiple Series Support**: Handles multiple independent time series
-- **Stateful Processing**: Maintains internal buffers for lag calculation
+- **Multiple Series Support**: Handles multiple independent time series via series_id
+- **Stateful Processing**: Maintains internal buffers for lag calculation using deque
 - **Zero-Fill**: Missing lags are automatically filled with 0.0
-
+- **Configurable Lags**: N_LAGS environment variable (default: 12)
 
 ## API Endpoints
 
-### Health Check
-```bash
-GET /health
+### `GET /health`
+Health check endpoint for Kubernetes probes.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "service": "feature_service"
+}
 ```
 
-### Service Information
-```bash
-GET /info
+### `GET /info`
+Service information including configuration and series data.
+
+**Response:**
+```json
+{
+  "service": "feature_service",
+  "max_lags": 12,
+  "output_format": "model_ready_in_1_to_in_12",
+  "series_info": {}
+}
 ```
 
-### Add Observation and Extract Features
-```bash
-POST /add
+### `POST /add`
+Add observation and extract lag features in model-ready format.
+
+**Request:**
+```json
 {
   "series_id": "default",
   "value": 125.0
@@ -45,7 +61,13 @@ POST /add
     "in_2": 115.0,
     "in_3": 110.0,
     "in_4": 0.0,
-    ...
+    "in_5": 0.0,
+    "in_6": 0.0,
+    "in_7": 0.0,
+    "in_8": 0.0,
+    "in_9": 0.0,
+    "in_10": 0.0,
+    "in_11": 0.0,
     "in_12": 0.0
   },
   "target": 125.0,
@@ -53,9 +75,17 @@ POST /add
 }
 ```
 
-### Series Information
-```bash
-GET /series/{series_id}
+### `GET /series/{series_id}`
+Get information about a specific series.
+
+**Response:**
+```json
+{
+  "series_id": "default",
+  "length": 5,
+  "latest_value": 125.0,
+  "available_lags": 5
+}
 ```
 
 ## Feature Format
@@ -68,6 +98,25 @@ The service outputs features in model-ready format:
 - `in_12`: Twelfth most recent previous observation (lag 12)
 
 Missing lags are filled with `0.0`.
+
+## Implementation Details
+
+### Core Components
+
+- **`main.py`**: FastAPI application entry point
+- **`service.py`**: FastAPI service with endpoint definitions
+- **`feature_manager.py`**: `LagFeatureManager` class with core logic
+
+### LagFeatureManager Class
+
+- **`add_observation()`**: Adds value to series buffer (deque with maxlen)
+- **`extract_features()`**: Extracts lag features then adds current observation
+- **`get_series_info()`**: Returns information about all series
+
+### Configuration
+
+Environment variable:
+- `N_LAGS`: Number of lag features (default: 12)
 
 ## Usage Examples
 
@@ -85,7 +134,7 @@ features = response.json()["features"]
 # features is ready for model service input
 ```
 
-### Complete Workflow Example
+### Sequential Processing
 ```python
 import requests
 
@@ -145,24 +194,23 @@ docker build -t ml-features .
 docker run -p 8001:8001 ml-features
 ```
 
-### Test Deployed Service
-```bash
-# Test locally
-python3 ../../infra/test_features_api.py
+## Testing
 
-# Test deployed service
-python3 ../../infra/test_features_api.py http://<your-ip>:8001
+Comprehensive test coverage in `tests/`:
 
-# Test integration with model service
-bash ../../infra/test_features_model.sh
-```
+- **`test_api.py`**: API endpoint testing
+- **`test_features.py`**: Feature extraction logic
+- **`test_integration.py`**: Integration scenarios
+
+Key test scenarios:
+- Health and info endpoints
+- Single and multiple observations
+- Lag pattern validation
+- Model-ready format verification
+- Edge cases (negative, zero, large values)
+- Series information retrieval
 
 ## Configuration
-
-- **N_LAGS**: Configurable via environment variable (default: 12)
-- **Port**: 8001
-- **Output Format**: in_1 to in_{N_LAGS} (model-ready)
-- **Memory**: Internal deque buffers
 
 ### Changing Number of Lags
 ```bash
@@ -199,10 +247,13 @@ Receives observations from ingestion service and processes them:
 
 ```python
 # From ingestion service
-observation = {"value": 125.0, "series_id": "default"}
+observation = {"target": 125.0}
 
 # To feature service
-requests.post("http://feature-service:8001/add", json=observation)
+requests.post("http://feature-service:8001/add", json={
+    "series_id": "default",
+    "value": observation["target"]
+})
 ```
 
 ## Deployment
@@ -214,16 +265,31 @@ requests.post("http://feature-service:8001/add", json=observation)
 - **Health Check**: `/health` endpoint
 - **CI/CD**: Automated build/push on changes to `pipelines/feature_service/**`
 
+## CI/CD Pipeline
+
+GitHub Actions workflow (`.github/workflows/features_ci.yml`):
+
+1. **Test Phase**:
+   - Python 3.11 setup
+   - Install dependencies
+   - Run pytest tests with PYTHONPATH
+
+2. **Build & Push Phase**:
+   - Docker Buildx setup
+   - Login to Docker Hub
+   - Build for linux/arm64 platform
+   - Push to `r0d3r1ch25/ml-features:latest`
+
 ## Architecture
 
 ```
 Input: Time Series Value
          ↓
-    Lag Calculation
+    Lag Calculation (deque buffer)
          ↓
    Model-Ready Features
          ↓
     Output: in_1 to in_12
 ```
 
-The service maintains internal state for each time series to calculate lag features efficiently.
+The service maintains internal state for each time series to calculate lag features efficiently using Python's deque with maxlen for automatic buffer management.

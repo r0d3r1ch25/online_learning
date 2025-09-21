@@ -1,6 +1,6 @@
 # Model Service
 
-Online machine learning service with multiple regression models for real-time training and prediction.
+Online machine learning service with multiple regression models for real-time training and prediction using River.
 
 ## Overview
 
@@ -33,9 +33,35 @@ export MODEL_NAME=bagging_regressor    # Bagging Regressor with Trees
 
 ## API Endpoints
 
+### `GET /health`
+Health check endpoint for Kubernetes probes.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "model_loaded": true
+}
+```
+
+### `GET /info`
+Service information including current model configuration.
+
+**Response:**
+```json
+{
+  "model_name": "River Linear Regression",
+  "model_version": "0.22.0",
+  "forecast_horizon": 1,
+  "feature_agnostic": true,
+  "regression_model": true,
+  "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]
+}
+```
+
 ### `POST /train`
 Train the model with features and target value.
-- Generates metrics by predicting before training
+- Generates metrics by predicting before training (if possible)
 - Updates model with new observation
 
 **Request:**
@@ -43,6 +69,13 @@ Train the model with features and target value.
 {
   "features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0},
   "target": 130.0
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Model trained successfully"
 }
 ```
 
@@ -93,13 +126,13 @@ Get comprehensive model performance metrics.
 ```json
 {
   "default": {
+    "count": 15,
     "mae": 2.45,
     "mse": 8.12,
     "rmse": 2.85,
-    "count": 15,
     "last_prediction": 138.7,
     "last_actual": 140.0,
-    "last_error": -1.3
+    "last_error": 1.3
   }
 }
 ```
@@ -107,29 +140,61 @@ Get comprehensive model performance metrics.
 ### `GET /metrics`
 Prometheus-compatible metrics endpoint.
 
-### `GET /info`
-Service information including current model.
+**Response (text/plain):**
+```
+# HELP ml_model_mae Mean Absolute Error
+# TYPE ml_model_mae gauge
+ml_model_mae{series="default"} 2.45
 
-**Response:**
-```json
-{
-  "model_name": "River Linear Regression",
-  "model_version": "0.22.0",
-  "forecast_horizon": 1,
-  "feature_agnostic": true,
-  "regression_model": true,
-  "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]
-}
+# HELP ml_model_mse Mean Squared Error
+# TYPE ml_model_mse gauge
+ml_model_mse{series="default"} 8.12
+
+# HELP ml_model_rmse Root Mean Squared Error
+# TYPE ml_model_rmse gauge
+ml_model_rmse{series="default"} 2.85
+
+# HELP ml_model_predictions_total Total number of predictions
+# TYPE ml_model_predictions_total counter
+ml_model_predictions_total{series="default"} 15
+
+# HELP ml_model_last_prediction Last prediction value
+# TYPE ml_model_last_prediction gauge
+ml_model_last_prediction{series="default"} 138.7
+
+# HELP ml_model_last_error Last prediction error
+# TYPE ml_model_last_error gauge
+ml_model_last_error{series="default"} 1.3
 ```
 
-## Configuration
+## Implementation Details
+
+### Core Components
+
+- **`main.py`**: FastAPI application entry point with signal handling
+- **`service.py`**: FastAPI service with endpoint definitions
+- **`model_manager.py`**: `ModelManager` class with River model integration
+- **`metrics_manager.py`**: `MetricsManager` class for performance tracking
+
+### ModelManager Class
+
+- **`train()`**: Train model with features and target using `learn_one()`
+- **`predict()`**: Make prediction using `predict_one()`
+- **`predict_multi_step()`**: Returns single prediction repeated for forecast horizon
+- **`predict_learn()`**: Predict then learn workflow
+
+### MetricsManager Class
+
+- **`add()`**: Add prediction/actual pair for metrics calculation
+- **`get_metrics()`**: Calculate MAE, MSE, RMSE from stored predictions
+
+### Configuration
 
 Environment variables:
 - `MODEL_NAME`: Model type (default: "linear_regression")
 
 Hardcoded values:
 - `FORECAST_HORIZON`: 1 (single-step prediction)
-- `NUM_FEATURES`: 12 (in_1 to in_12)
 
 ## Usage Examples
 
@@ -183,18 +248,6 @@ curl -X POST http://localhost:8000/predict \
   }'
 ```
 
-### Monitoring and Metrics
-```bash
-# Get comprehensive model metrics
-curl http://localhost:8000/model_metrics
-# Returns: {"default": {"mae": 2.45, "mse": 8.12, "rmse": 2.85, "count": 15, ...}}
-
-# Get Prometheus metrics
-curl http://localhost:8000/metrics
-# Returns: Prometheus format metrics for monitoring
-
-```
-
 ### Feature Flexibility
 ```bash
 # Works with any number of features
@@ -206,6 +259,17 @@ curl -X POST http://localhost:8000/predict \
 curl -X POST http://localhost:8000/train \
   -H "Content-Type: application/json" \
   -d '{"features": {"lag_1": 100.0, "trend": 0.5}, "target": 150.0}'
+```
+
+### Monitoring and Metrics
+```bash
+# Get comprehensive model metrics
+curl http://localhost:8000/model_metrics
+# Returns: {"default": {"mae": 2.45, "mse": 8.12, "rmse": 2.85, "count": 15, ...}}
+
+# Get Prometheus metrics
+curl http://localhost:8000/metrics
+# Returns: Prometheus format metrics for monitoring
 ```
 
 ## Integration with Feature Service
@@ -239,6 +303,22 @@ docker build -t ml-model .
 docker run -p 8000:8000 -e MODEL_NAME=ridge_regression ml-model
 ```
 
+## Testing
+
+Comprehensive test coverage in `tests/`:
+
+- **`test_requests.py`**: API endpoint testing
+- **`test_integration.py`**: Integration scenarios
+
+Key test scenarios:
+- Health and info endpoints
+- Training with various feature sets
+- Prediction with missing/unknown features
+- Online learning workflow
+- Metrics calculation and Prometheus format
+- Feature agnostic behavior
+- Edge cases (negative, zero, large values)
+
 ## Deployment
 
 - **Docker Image**: `r0d3r1ch25/ml-model:latest`
@@ -246,3 +326,32 @@ docker run -p 8000:8000 -e MODEL_NAME=ridge_regression ml-model
 - **Kubernetes Port**: 8000
 - **LoadBalancer**: Accessible at `http://<your-ip>:8000`
 - **CI/CD**: Automated build/push on changes to `pipelines/model_service/**`
+
+## CI/CD Pipeline
+
+GitHub Actions workflow (`.github/workflows/model_ci.yml`):
+
+1. **Test Phase**:
+   - Python 3.11 setup
+   - Install dependencies
+   - Run pytest tests
+
+2. **Build & Push Phase**:
+   - Docker Buildx setup
+   - Login to Docker Hub
+   - Build for linux/arm64 platform
+   - Push to `r0d3r1ch25/ml-model:latest`
+
+## Architecture
+
+```
+Input: Features + Target
+         ↓
+    River Model (Online Learning)
+         ↓
+    Prediction + Metrics
+         ↓
+    Output: Forecast/Prediction
+```
+
+The service uses River's online learning algorithms for real-time model updates and feature-agnostic processing.

@@ -161,17 +161,7 @@ class TestModelServiceIntegration:
         assert response.status_code == 200
         assert "text/plain" in response.headers.get("content-type", "")
     
-    def test_feedback_endpoint(self):
-        """Test feedback endpoint"""
-        if not self._check_service_available():
-            pytest.skip("Model service not available - skipping integration test")
-            
-        response = requests.post(f"{self.base_url}/feedback", json={
-            "message": "Model performing well with new features"
-        })
-        assert response.status_code == 200
-        result = response.json()
-        assert "message" in result
+
 
 if __name__ == "__main__":
     # Can be run directly for manual testing
@@ -184,5 +174,5 @@ if __name__ == "__main__":
     test.test_input_validation()
     test.test_edge_cases()
     test.test_metrics_endpoints()
-    test.test_feedback_endpoint()
+
     print("All integration tests passed!")

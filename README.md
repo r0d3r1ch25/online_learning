@@ -21,41 +21,82 @@ online_learning/
 │   └── e2e_job_ci.yml         # E2E job CI/CD
 ├── pipelines/                 # Microservices
 │   ├── ingestion_service/     # Time series data streaming
+│   │   ├── tests/            # Unit tests
+│   │   │   └── test_ingestion.py
+│   │   ├── __init__.py       # Python package init
 │   │   ├── data.csv          # Sample dataset (1949-1960 monthly data)
 │   │   ├── service.py        # Core ingestion logic
 │   │   ├── main.py           # FastAPI application
 │   │   ├── Dockerfile        # Non-root container image
 │   │   ├── README.md         # Service documentation
-│   │   └── tests/            # Unit tests
+│   │   └── requirements.txt  # Python dependencies
 │   ├── feature_service/       # Feature extraction
+│   │   ├── tests/            # Unit tests
+│   │   │   ├── test_api.py
+│   │   │   ├── test_features.py
+│   │   │   └── test_integration.py
+│   │   ├── __init__.py       # Python package init
 │   │   ├── feature_manager.py # Time series feature engineering
 │   │   ├── service.py        # FastAPI service
+│   │   ├── main.py           # Application entry point
 │   │   ├── Dockerfile        # Non-root container image
 │   │   ├── README.md         # Service documentation
-│   │   └── tests/            # Unit tests
+│   │   └── requirements.txt  # Python dependencies
 │   └── model_service/         # Online ML models
+│       ├── tests/            # Unit tests
+│       │   ├── test_integration.py
+│       │   └── test_requests.py
+│       ├── __init__.py       # Python package init
 │       ├── model_manager.py   # Online learning algorithms
 │       ├── metrics_manager.py # Performance tracking
 │       ├── service.py        # FastAPI service
+│       ├── main.py           # Application entry point
 │       ├── Dockerfile        # Non-root container image
 │       ├── README.md         # Service documentation
-│       └── tests/            # Unit tests
+│       └── requirements.txt  # Python dependencies
 ├── jobs/                      # Job containers
 │   └── e2e_job/              # End-to-end pipeline job
-│       ├── pipeline.py       # Pipeline orchestration logic
+│       ├── tests/            # Unit tests
+│       │   ├── requirements.txt
+│       │   └── test_pipeline.py
 │       ├── Dockerfile        # Non-root container image
-│       ├── requirements.txt  # Job dependencies
-│       └── README.md         # Job documentation
+│       ├── pipeline.py       # Pipeline orchestration logic
+│       ├── README.md         # Job documentation
+│       └── requirements.txt  # Job dependencies
 ├── infra/                     # Infrastructure as Code
 │   ├── k8s/                  # Kubernetes manifests
 │   │   ├── ml-services/      # ML microservices deployment
+│   │   │   ├── deployments/  # Deployment manifests
+│   │   │   ├── services/     # Service manifests
+│   │   │   ├── kustomization.yaml
+│   │   │   └── namespace.yaml
 │   │   ├── argo/             # Argo Workflows setup
+│   │   │   ├── kustomization.yaml
+│   │   │   ├── namespace.yaml
+│   │   │   └── quick-start-minimal.yaml
 │   │   ├── feast/            # Feature store infrastructure
-│   │   └── monitoring/       # Observability stack
-│   └── workflows/            # Argo workflow definitions
-│       ├── v0/               # CronWorkflow (inline script)
-│       └── v1/               # CronWorkflow (baked image)
-└── Makefile                  # Infrastructure automation
+│   │   │   ├── deployments/  # Feast, Redis, MinIO deployments
+│   │   │   ├── services/     # Service manifests
+│   │   │   ├── feast-config.yaml
+│   │   │   ├── kustomization.yaml
+│   │   │   └── namespace.yaml
+│   │   ├── monitoring/       # Observability stack
+│   │   │   ├── configmaps/   # Grafana, Prometheus, Promtail configs
+│   │   │   ├── deployments/  # Monitoring service deployments
+│   │   │   ├── services/     # Service manifests
+│   │   │   ├── kustomization.yaml
+│   │   │   ├── namespace.yaml
+│   │   │   └── rbac.yaml
+│   │   └── kustomization.yaml # Root kustomization
+│   ├── workflows/            # Argo workflow definitions
+│   │   ├── v0/               # CronWorkflow (inline script)
+│   │   │   └── online-learning-pipeline.yaml
+│   │   └── v1/               # CronWorkflow (baked image)
+│   │       └── online-learning-pipeline-v1.yaml
+│   └── test_pipeline.sh      # Manual pipeline testing script
+├── .gitignore                # Git ignore rules
+├── Makefile                  # Infrastructure automation
+└── README.md                 # This file
 ```
 
 ## Infrastructure Components
@@ -112,13 +153,13 @@ Once deployed, access services via LoadBalancer:
 
 ```bash
 # Start CronWorkflow (runs every minute)
-make argo-hello
+make argo-e2e
 
 # Monitor workflows (keeps last 25 successful, 5 failed)
 argo list -n argo
 
 # Stop CronWorkflow
-kubectl delete cronworkflow online-learning-cron-v0 -n argo
+kubectl delete cronworkflow online-learning-cron-v1 -n argo
 
 # Monitor in Argo UI
 open https://<your-ip>:2746
@@ -138,49 +179,57 @@ curl -X POST http://<your-ip>:8002/reset
 
 # Check stream status
 curl http://<your-ip>:8002/status
+
+# Health check
+curl http://<your-ip>:8002/health
 ```
 
 ### Feature Service API
 
 ```bash
+# Health check
+curl http://<your-ip>:8001/health
+
+# Service information
+curl http://<your-ip>:8001/info
+
 # Add observation and extract lag features
 curl -X POST http://<your-ip>:8001/add \
   -H "Content-Type: application/json" \
   -d '{"series_id": "default", "value": 125.0}'
-# Returns: {"features": {"in_1": 120.0, "in_2": 115.0, ...}, "target": 125.0, "available_lags": 2}
+# Returns: {"series_id": "default", "features": {"in_1": 120.0, "in_2": 115.0, ...}, "target": 125.0, "available_lags": 2}
+
+# Get series information
+curl http://<your-ip>:8001/series/default
 ```
 
 ### Model Service API
 
-**Stateless online ML service supporting up to 12 input features (in_1 to in_12) with build-time configuration.**
+**Feature-agnostic online ML service that accepts any number of input features dynamically.**
 
 ```bash
-# Train model with features (3 inputs)
-curl -X POST http://<your-ip>:8000/train \
-  -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0}, "target": 130.0}'
+# Health check
+curl http://<your-ip>:8000/health
 
-# Train with all 12 inputs
+# Service information
+curl http://<your-ip>:8000/info
+
+# Train model with any features
 curl -X POST http://<your-ip>:8000/train \
   -H "Content-Type: application/json" \
-  -d '{
-    "features": {
-      "in_1": 125.0, "in_2": 120.0, "in_3": 115.0, "in_4": 110.0,
-      "in_5": 105.0, "in_6": 100.0, "in_7": 95.0, "in_8": 90.0,
-      "in_9": 85.0, "in_10": 80.0, "in_11": 75.0, "in_12": 70.0
-    },
-    "target": 130.0
-  }'
+  -d '{"features": {"in_1": 125.0, "in_2": 120.0, "custom_feature": 99.0}, "target": 130.0}'
 
 # Predict (single-step horizon)
 curl -X POST http://<your-ip>:8000/predict \
   -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}}'
+  -d '{"features": {"in_1": 130.0, "in_2": 125.0}}'
+# Returns: {"forecast": [{"value": 135.2}]}
 
 # Online learning (predict then learn)
 curl -X POST http://<your-ip>:8000/predict_learn \
   -H "Content-Type: application/json" \
   -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
+# Returns: {"prediction": 138.7}
 
 # Get comprehensive model performance metrics (MAE, MSE, RMSE)
 curl http://<your-ip>:8000/model_metrics
@@ -205,6 +254,7 @@ curl http://<your-ip>:8000/metrics
 ```bash
 make cluster-up      # Create k3d cluster
 make cluster-down    # Delete cluster
+make again           # Reset cluster with latest code
 ```
 
 ### Deployment
@@ -220,9 +270,12 @@ pytest pipelines/feature_service/tests/ -v
 pytest pipelines/model_service/tests/ -v
 
 # Start CronWorkflow (runs every minute)
-make argo-hello
+make argo-e2e
 
-# Manual pipeline test (single run)
+# Run unit tests for e2e job
+cd jobs/e2e_job && PYTHONPATH=. pytest tests/ -v
+
+# Manual pipeline testing
 bash infra/test_pipeline.sh
 ```
 
@@ -279,16 +332,11 @@ Each service has automated GitHub Actions that trigger on:
 #### Ingestion Service (`pipelines/ingestion_service/**`)
 - Runs pytest tests
 - Builds and tests Docker container
-- Validates API endpoints
-
-#### Ingestion Service (`pipelines/ingestion_service/**`)
-- Runs pytest tests
-- Builds and tests Docker container
+- Validates API endpoints with health check
 - Pushes to Docker Hub: `r0d3r1ch25/ml-ingestion:latest`
-- Validates API endpoints
 
 #### Feature Service (`pipelines/feature_service/**`)
-- Runs pytest tests  
+- Runs pytest tests with PYTHONPATH
 - Builds Docker image
 - Pushes to Docker Hub: `r0d3r1ch25/ml-features:latest`
 
@@ -305,9 +353,9 @@ Each service has automated GitHub Actions that trigger on:
 ## Data Flow
 
 1. **Ingestion Service** streams time series observations (date, value pairs)
-2. **Feature Service** calculates lag features and outputs model-ready format (in_1 to in_12)
-3. **Model Service** performs online learning using model-ready features and targets
-4. **Argo Python CronWorkflow** orchestrates the end-to-end pipeline every minute
+2. **Feature Service** calculates lag features and outputs model-ready format (in_1 to in_{N_LAGS})
+3. **Model Service** performs feature-agnostic online learning with any features provided
+4. **Argo CronWorkflow** orchestrates the end-to-end pipeline every minute
 5. **Monitoring Stack** tracks logs and metrics across all services
 
 ## Configuration
@@ -338,12 +386,6 @@ The platform uses a sample time series dataset (`data.csv`) with monthly observa
 
 ## Troubleshooting
 
-### Feast Server Issues
-If `feast-server` pod fails to start:
-1. Check `initContainer` runs `feast apply` successfully
-2. Verify `emptyDir` volume is writable
-3. Ensure correct command: `feast serve`
-
 ### Service Connectivity
 ```bash
 # Test service health
@@ -366,14 +408,7 @@ Each microservice has detailed documentation in its respective directory:
 - **[Ingestion Service](pipelines/ingestion_service/README.md)**: Time series data streaming API with sequential observation delivery
 - **[Feature Service](pipelines/feature_service/README.md)**: Lag feature calculation with model-ready output format (in_1 to in_12)
 - **[Model Service](pipelines/model_service/README.md)**: Feature-agnostic online ML service with multiple regression models
-  - **Feature Agnostic**: Accepts any number of input features dynamically
-  - **Forecast Horizon**: Single-step predictions (FORECAST_HORIZON=1)
-  - **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Bagging Regressor
-  - **Model Switching**: Via MODEL_NAME environment variable
-  - **Performance Metrics**: Comprehensive MAE, MSE, RMSE tracking via /model_metrics endpoint
-  - **Prometheus Integration**: /metrics endpoint for monitoring stack integration
-  - **Online Learning**: Real-time predict-then-learn workflow with metrics tracking
-  - **River Integration**: Leverages River's adaptive capabilities
+- **[E2E Job](jobs/e2e_job/README.md)**: End-to-end pipeline orchestration job for Argo Workflows
 
 ## Docker Images
 
@@ -388,6 +423,37 @@ All images use non-root users for security and are automatically built and pushe
 - All containers run as non-root user `appuser`
 - Principle of least privilege applied
 - Reduced attack surface for production deployments
+
+## Technology Stack
+
+- **Container Orchestration**: Kubernetes (k3d)
+- **Workflow Engine**: Argo Workflows
+- **API Framework**: FastAPI
+- **Feature Store**: Feast + Redis + MinIO
+- **Monitoring**: Grafana + Loki + Promtail + Prometheus
+- **CI/CD**: GitHub Actions
+- **Container Registry**: Docker Hub
+- **Online Learning**: River (incremental ML algorithms)
+
+## Dependencies
+
+### Core Services
+- **FastAPI**: Web framework for all services
+- **Uvicorn**: ASGI server
+- **Pydantic**: Data validation
+- **River**: Online machine learning library
+- **Pandas**: Data manipulation (ingestion service)
+- **Requests**: HTTP client library
+
+### Testing
+- **Pytest**: Testing framework
+- **HTTPx**: Async HTTP client for testing
+
+### Infrastructure
+- **k3d**: Lightweight Kubernetes distribution
+- **Kustomize**: Kubernetes configuration management
+- **Argo Workflows**: Workflow orchestration
+- **Grafana Stack**: Monitoring and observability
 
 ## Current Project Status
 
@@ -405,15 +471,16 @@ All images use non-root users for security and are automatically built and pushe
 - ✅ Health checks and resource limits configured
 
 **CI/CD Pipeline (Automated)**
-- ✅ GitHub Actions for all 3 services
+- ✅ GitHub Actions for all services + e2e job
 - ✅ Automated testing with pytest
 - ✅ Docker build/push to Docker Hub
 - ✅ Manual and path-based triggers
 
 **Workflow Orchestration**
 - ✅ Argo Workflows installed and configured
-- ✅ Python CronWorkflow v0 ready (runs every minute)
+- ✅ CronWorkflow v1 with containerized job (runs every minute)
 - ✅ Workflow management UI accessible
+- ✅ Manual testing script available
 
 **Monitoring & Observability**
 - ✅ Grafana + Loki + Promtail + Prometheus stack
@@ -433,91 +500,134 @@ All images use non-root users for security and are automatically built and pushe
 2. **Access**: All services available at `http://<your-ip>:port`
 3. **Monitor**: Grafana at `http://<your-ip>:3000`
 4. **Orchestrate**: Argo UI at `https://<your-ip>:2746`
+5. **Test**: `bash infra/test_pipeline.sh` for manual testing
 
-## Technology Stack
+## Complete API Reference
 
-- **Container Orchestration**: Kubernetes (k3d)
-- **Workflow Engine**: Argo Workflows
-- **API Framework**: FastAPI
-- **Feature Store**: Feast + Redis + MinIO
-- **Monitoring**: Grafana + Loki + Promtail + Prometheus
-- **CI/CD**: GitHub Actions
-- **Container Registry**: Docker Hub
-- **Online Learning**: River (incremental ML algorithms)
+### Ingestion Service (Port 8002)
 
-## API Endpoints Reference
+#### `GET /health`
+Health check endpoint for Kubernetes probes.
+```bash
+curl http://<your-ip>:8002/health
+# Returns: {"status": "healthy", "total_observations": 144}
+```
+
+#### `GET /next`
+Get the next observation from the dataset.
+```bash
+curl http://<your-ip>:8002/next
+# Returns: {"observation_id": 1, "input": "1949-01", "target": 112, "remaining": 143}
+# Returns 204 when stream is exhausted
+```
+
+#### `POST /reset`
+Reset the stream to start from the beginning.
+```bash
+curl -X POST http://<your-ip>:8002/reset
+# Returns: {"message": "Stream reset to beginning", "total_observations": 144}
+```
+
+#### `GET /status`
+Get current stream status.
+```bash
+curl http://<your-ip>:8002/status
+# Returns: {"current_index": 5, "total_observations": 144, "remaining": 139, "completed": false}
+```
 
 ### Feature Service (Port 8001)
 
-**Health Check**
+#### `GET /health`
+Health check endpoint for Kubernetes probes.
 ```bash
 curl http://<your-ip>:8001/health
+# Returns: {"status": "healthy", "service": "feature_service"}
 ```
 
-**Service Information**
+#### `GET /info`
+Get service and series information.
 ```bash
 curl http://<your-ip>:8001/info
+# Returns: {"service": "feature_service", "max_lags": 12, "output_format": "model_ready_in_1_to_in_12", "series_info": {}}
 ```
 
-**Add Observation and Extract Features (Model-Ready Format)**
+#### `POST /add`
+Add observation and extract lag features in model-ready format.
 ```bash
 curl -X POST http://<your-ip>:8001/add \
   -H "Content-Type: application/json" \
   -d '{"series_id": "default", "value": 125.0}'
-# Returns: {"features": {...}, "target": 125.0, "available_lags": N}
+# Returns: {"series_id": "default", "features": {"in_1": 120.0, "in_2": 115.0, ...}, "target": 125.0, "available_lags": 2}
 ```
 
-**Get Series Information**
+#### `GET /series/{series_id}`
+Get information about a specific series.
 ```bash
 curl http://<your-ip>:8001/series/default
+# Returns: {"series_id": "default", "length": 5, "latest_value": 125.0, "available_lags": 5}
+# Returns 404 if series not found
 ```
 
 ### Model Service (Port 8000)
 
-**Health Check**
+#### `GET /health`
+Health check endpoint for Kubernetes probes.
 ```bash
 curl http://<your-ip>:8000/health
+# Returns: {"status": "ok", "model_loaded": true}
 ```
 
-**Service Information**
+#### `GET /info`
+Get service information including current model configuration.
 ```bash
 curl http://<your-ip>:8000/info
+# Returns: {"model_name": "River Linear Regression", "model_version": "0.22.0", "forecast_horizon": 1, "feature_agnostic": true, "regression_model": true, "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]}
 ```
 
-**Train Model**
+#### `POST /train`
+Train the model with features and target value.
 ```bash
 curl -X POST http://<your-ip>:8000/train \
   -H "Content-Type: application/json" \
   -d '{"features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0}, "target": 130.0}'
+# Returns: {"message": "Model trained successfully"}
 ```
 
-**Predict (Single-Step Horizon)**
+#### `POST /predict`
+Make prediction using current model state (single-step forecast).
 ```bash
 curl -X POST http://<your-ip>:8000/predict \
   -H "Content-Type: application/json" \
   -d '{"features": {"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}}'
+# Returns: {"forecast": [{"value": 135.2}]}
 ```
 
-**Online Learning (Predict then Learn)**
+#### `POST /predict_learn`
+Predict then learn from actual value (online learning).
 ```bash
 curl -X POST http://<your-ip>:8000/predict_learn \
   -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
+  -d '{"features": {"in_1": 135.0, "in_2": 130.0, "in_3": 125.0}, "target": 140.0}'
+# Returns: {"prediction": 138.7}
 ```
 
-**Get Model Performance Metrics**
+#### `GET /model_metrics`
+Get comprehensive model performance metrics.
 ```bash
 curl http://<your-ip>:8000/model_metrics
+# Returns: {"default": {"count": 15, "mae": 2.45, "mse": 8.12, "rmse": 2.85, "last_prediction": 138.7, "last_actual": 140.0, "last_error": 1.3}}
 ```
 
-**Get Prometheus Metrics**
+#### `GET /metrics`
+Prometheus-compatible metrics endpoint.
 ```bash
 curl http://<your-ip>:8000/metrics
-```
-
-**Submit Feedback**
-```bash
-curl -X POST http://<your-ip>:8000/feedback \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Model performing well"}'
+# Returns: Prometheus format metrics (text/plain)
+# Example:
+# ml_model_mae{series="default"} 2.45
+# ml_model_mse{series="default"} 8.12
+# ml_model_rmse{series="default"} 2.85
+# ml_model_predictions_total{series="default"} 15
+# ml_model_last_prediction{series="default"} 138.7
+# ml_model_last_error{series="default"} 1.3
 ```
