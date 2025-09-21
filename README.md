@@ -173,14 +173,13 @@ curl http://<your-ip>:8000/metrics
 ```
 
 **Key Features:**
-- **Up to 12 Inputs**: in_1, in_2, ..., in_12 (missing features handled by imputation)
+- **Up to 12 Inputs**: in_1, in_2, ..., in_12 (feature service provides complete features)
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
 - **12 Input Features**: NUM_FEATURES=12 (hardcoded)
 - **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Random Forest via MODEL_NAME env var
 - **Input Validation**: Unknown features trigger warnings but don't fail
 - **Performance Tracking**: /model_metrics endpoint with MAE, MSE, RMSE
 - **Prometheus Ready**: /metrics endpoint for monitoring stack integration
-- **Imputation**: Missing features handled by River Mean imputation
 - **Easy Model Switching**: Change MODEL_NAME environment variable
 
 ## Development Commands
@@ -309,7 +308,7 @@ Each microservice has detailed documentation in its respective directory:
   - **Performance Metrics**: Comprehensive MAE, MSE, RMSE tracking via /model_metrics endpoint
   - **Prometheus Integration**: /metrics endpoint for monitoring stack integration
   - **Online Learning**: Real-time predict-then-learn workflow with metrics tracking
-  - **Imputation**: Missing features handled by River Mean imputation
+  - **Feature Processing**: Receives complete features from feature service
 
 ## Docker Images
 

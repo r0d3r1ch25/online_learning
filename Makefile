@@ -32,7 +32,7 @@ apply:
 # Test Argo Workflows
 .PHONY: argo-hello
 argo-hello:
-	argo submit -n argo --watch infra/argo/hello-world.yaml
+	argo submit -n argo --watch infra/workflows/v0/online-learning-pipeline.yaml
 
 # Clean up deployments
 .PHONY: clean

@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: online-learning-pipeline-v0-
+spec:
+  entrypoint: online-learning-loop
+  templates:
+  - name: online-learning-loop
+    steps:
+    - - name: run-pipeline
+        template: pipeline-step
+        withSequence:
+          count: "1000"  # Run indefinitely (handles >144 observations)
+  
+  - name: pipeline-step
+    container:
+      image: curlimages/curl:latest
+      command: [sh, -c]
+      args:
+        - |
+          echo "Processing observation {{workflow.parameters.step}}"
+          
+          # Get observation
+          OBSERVATION=$(curl -s "http://ingestion-service.ml-services.svc.cluster.local:8002/next")
+          if [ $? -ne 0 ]; then
+            echo "No more observations available"
+            exit 0
+          fi
+          
+          ACTUAL_VALUE=$(echo "$OBSERVATION" | jq -r '.target')
+          echo "Actual value: $ACTUAL_VALUE"
+          
+          # Get features and predict_learn
+          RESULT=$(echo "$OBSERVATION" | \
+            jq '{series_id: "argo_pipeline", value: .target}' | \
+            curl -s -X POST \
+              -H "Content-Type: application/json" \
+              --data-binary @- \
+              "http://feature-service.ml-services.svc.cluster.local:8001/add" | \
+            jq '{features: .features, target: .target}' | \
+            curl -s -X POST \
+              -H "Content-Type: application/json" \
+              --data-binary @- \
+              "http://model-service.ml-services.svc.cluster.local:8000/predict_learn")
+          
+          PREDICTION=$(echo "$RESULT" | jq -r '.prediction')
+          echo "Prediction: $PREDICTION"
+          echo "Actual: $ACTUAL_VALUE | Prediction: $PREDICTION"
+          
+          # Wait 2 minutes
+          sleep 120
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "128Mi"
+          cpu: "200m"

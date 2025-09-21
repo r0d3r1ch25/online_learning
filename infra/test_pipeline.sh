@@ -14,8 +14,13 @@ curl -s -X POST "$INGESTION_URL/reset"
 for i in $(seq 1 144); do
     echo "Processing observation $i/144 (predict_learn)"
     
-    # Pipeline: Ingestion -> Feature -> Model (Predict & Learn)
-    curl -s "$INGESTION_URL/next" \
+    # Get observation
+    OBSERVATION=$(curl -s "$INGESTION_URL/next")
+    ACTUAL_VALUE=$(echo "$OBSERVATION" | jq -r '.target')
+    echo "Actual value: $ACTUAL_VALUE"
+    
+    # Get features and predict_learn
+    RESULT=$(echo "$OBSERVATION" \
     | jq '{series_id: "pipeline_test", value: .target}' \
     | curl -s -X POST \
         -H "Content-Type: application/json" \
@@ -25,9 +30,14 @@ for i in $(seq 1 144); do
     | curl -s -X POST \
         -H "Content-Type: application/json" \
         --data-binary @- \
-        "$MODEL_URL/predict_learn"
+        "$MODEL_URL/predict_learn")
     
-    echo "Sleeping 60 seconds..."
+    PREDICTION=$(echo "$RESULT" | jq -r '.prediction')
+    echo "Prediction: $PREDICTION"
+    echo "Actual: $ACTUAL_VALUE | Prediction: $PREDICTION"
+    
+    echo ""
+    echo "Waiting 60 seconds..."
     sleep 60
 done
 

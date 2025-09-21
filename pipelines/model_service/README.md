@@ -15,7 +15,7 @@ The model service provides online learning capabilities with support for multipl
 - **Feature Validation**: Up to 12 input features (in_1 to in_12)
 - **Performance Metrics**: MAE, MSE, RMSE tracking
 - **Prometheus Integration**: Metrics endpoint for monitoring
-- **Imputation**: Missing features handled automatically
+- **Feature Processing**: Receives complete features from feature service
 
 ## Model Selection
 
@@ -27,7 +27,7 @@ export MODEL_NAME=linear_regression    # Default - Linear Regression with Standa
 export MODEL_NAME=ridge_regression     # Ridge Regression (L2 regularization)
 export MODEL_NAME=lasso_regression     # Lasso Regression (L1 regularization)  
 export MODEL_NAME=decision_tree        # Hoeffding Tree Regressor
-export MODEL_NAME=random_forest        # Adaptive Random Forest Regressor
+export MODEL_NAME=bagging_regressor    # Bagging Regressor with Trees
 ```
 
 ## API Endpoints
@@ -118,7 +118,7 @@ Service information including current model.
   "max_features": 12,
   "regression_model": true,
   "features_required": true,
-  "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "random_forest"]
+  "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]
 }
 ```
 

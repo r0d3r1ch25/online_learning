@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from typing import Dict, List
 from model_manager import ModelManager
 from metrics_manager import MetricsManager
-from river import stats
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,8 +22,7 @@ app = FastAPI(title="Online ML API")
 FORECAST_HORIZON = 1
 NUM_FEATURES = 12
 
-# Models and simple imputation
-mean_imputer = stats.Mean()
+# Models
 model_manager = ModelManager()
 metrics_manager = MetricsManager()
 
@@ -76,12 +74,12 @@ def train(request: TrainRequest):
 
 @app.post("/predict")
 def predict(request: PredictRequest):
-    """Predict multiple steps ahead using HoltWinters forecasting"""
+    """Predict using regression model"""
     try:
-        # Validate features (not used by HoltWinters but kept for compatibility)
+        # Validate and clean features
         validated_features = _validate_features(request.features)
         
-        # Get multi-step forecast from HoltWinters
+        # Get forecast from regression model
         forecast_values = model_manager.predict_multi_step(validated_features)
         forecast = [{"value": val} for val in forecast_values]
         return {"forecast": forecast}
@@ -93,25 +91,12 @@ def _validate_features(features: Dict[str, float]) -> Dict[str, float]:
     expected_inputs = {f"in_{i}" for i in range(1, 13)}  # in_1 to in_12
     validated = {}
     
-    # Check for unknown inputs
+    # Check for unknown inputs and keep only expected ones
     for key in features:
         if key not in expected_inputs:
             logging.warning(f"Unknown input feature: {key}")
         else:
             validated[key] = features[key]
-    
-    # Simple mean imputation for missing features
-    # Update mean with available values
-    for value in validated.values():
-        mean_imputer.update(value)
-    
-    # Fill missing features with current mean or 0.0 if no data
-    mean_value = mean_imputer.get() if mean_imputer.n > 0 else 0.0
-    
-    for i in range(1, 13):  # in_1 to in_12
-        input_key = f"in_{i}"
-        if input_key not in validated:
-            validated[input_key] = mean_value
     
     return validated
 
