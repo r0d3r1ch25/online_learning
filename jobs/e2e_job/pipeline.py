@@ -58,7 +58,6 @@ def main():
         
         features = feature_result['features']
         log(f"[2/4] SUCCESS: Features extracted: {len(features)} inputs, {feature_result.get('available_lags', 0)} lags available")
-        log(f"  All features: {features}")
         log("  Feature breakdown:")
         num_features = len([k for k in features.keys() if k.startswith('in_')])
         for i in range(1, num_features + 1):
