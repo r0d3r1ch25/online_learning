@@ -1,6 +1,7 @@
 import os
 import requests
 from datetime import datetime
+import pytz
 
 class CoinbaseService:
     def __init__(self):
@@ -13,9 +14,13 @@ class CoinbaseService:
         data = response.json()
         
         rate = float(data["data"]["rates"][self.target_currency])
+        inverse_rate = 1 / rate
+        
+        mexico_tz = pytz.timezone('America/Mexico_City')
+        mexico_time = datetime.now(mexico_tz)
         
         return {
             "series_id": self.target_currency,
-            "target": rate,
-            "datetime": datetime.now().isoformat()
+            "target": inverse_rate,
+            "datetime": mexico_time.isoformat()
         }
