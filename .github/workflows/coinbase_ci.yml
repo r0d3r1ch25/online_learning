@@ -24,6 +24,11 @@ jobs:
         cd pipelines/coinbase_service
         pip install -r requirements.txt
     
+    - name: Run tests
+      run: |
+        cd pipelines/coinbase_service
+        PYTHONPATH=. pytest tests/ -v
+    
     - name: Build Docker image
       run: |
         cd pipelines/coinbase_service
