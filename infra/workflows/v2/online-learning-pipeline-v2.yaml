@@ -1,0 +1,85 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: online-learning-cron-v2
+  namespace: argo
+spec:
+  schedule: "*/2 * * * *"  # Every 2 minutes
+  successfulJobsHistoryLimit: 25
+  failedJobsHistoryLimit: 5
+  workflowSpec:
+    entrypoint: online-learning-pipeline
+    templates:
+    - name: online-learning-pipeline
+      steps:
+      - - name: get-observation
+          template: fetch-data
+      - - name: extract-features
+          template: process-features
+          arguments:
+            parameters:
+            - name: observation
+              value: "{{steps.get-observation.outputs.result}}"
+      - - name: train-linear-model
+          template: train-model
+          arguments:
+            parameters:
+            - name: features
+              value: "{{steps.extract-features.outputs.result}}"
+            - name: model-service
+              value: "model-service"
+            - name: model-port
+              value: "8000"
+        - name: train-ridge-model
+          template: train-model
+          arguments:
+            parameters:
+            - name: features
+              value: "{{steps.extract-features.outputs.result}}"
+            - name: model-service
+              value: "model-service-ridge"
+            - name: model-port
+              value: "8010"
+
+    - name: fetch-data
+      container:
+        image: curlimages/curl:latest
+        command: [sh, -c]
+        args:
+        - |
+          echo "Fetching observation from ingestion service..."
+          curl -s http://ingestion-service.ml-services.svc.cluster.local:8002/next
+
+    - name: process-features
+      inputs:
+        parameters:
+        - name: observation
+      container:
+        image: curlimages/curl:latest
+        command: [sh, -c]
+        args:
+        - |
+          echo "Processing features..."
+          echo '{{inputs.parameters.observation}}' | \
+          jq '{series_id: "pipeline_v2", value: .target}' | \
+          curl -s -X POST -H "Content-Type: application/json" \
+            --data-binary @- \
+            http://feature-service.ml-services.svc.cluster.local:8001/add
+
+    - name: train-model
+      inputs:
+        parameters:
+        - name: features
+        - name: model-service
+        - name: model-port
+      container:
+        image: curlimages/curl:latest
+        command: [sh, -c]
+        args:
+        - |
+          echo "Training {{inputs.parameters.model-service}} model..."
+          echo '{{inputs.parameters.features}}' | \
+          jq '{features: .features, target: .target}' | \
+          curl -s -X POST -H "Content-Type: application/json" \
+            --data-binary @- \
+            http://{{inputs.parameters.model-service}}.ml-services.svc.cluster.local:{{inputs.parameters.model-port}}/predict_learn

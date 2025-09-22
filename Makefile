@@ -11,6 +11,7 @@ cluster-up:
 		--port "8001:8001@loadbalancer" \
 		--port "8002:8002@loadbalancer" \
 		--port "8003:8003@loadbalancer" \
+		--port "8010:8010@loadbalancer" \
 		--port "2746:2746@loadbalancer" \
 		--port "3000:3000@loadbalancer" \
 		--port "9090:9090@loadbalancer" \

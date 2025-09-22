@@ -16,9 +16,6 @@ RUN chown -R appuser:appgroup /app
 # Switch to non-root user
 USER appuser
 
-# Environment variables with defaults
-ENV N_LAGS=12
-
 EXPOSE 8001
 
 CMD ["python", "main.py"]
