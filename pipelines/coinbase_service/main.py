@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from .service import CoinbaseService
+from service import CoinbaseService
 
 app = FastAPI()
 coinbase_service = CoinbaseService()
