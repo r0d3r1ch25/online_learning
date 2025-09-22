@@ -4,7 +4,7 @@ metadata:
   name: online-learning-cron-v2
   namespace: argo
 spec:
-  schedule: "*/2 * * * *"  # Every 2 minutes
+  schedule: "* * * * *"  # Every 1 minute
   successfulJobsHistoryLimit: 25
   failedJobsHistoryLimit: 5
   workflowSpec:
@@ -39,7 +39,17 @@ spec:
             - name: model-service
               value: "model-service-ridge"
             - name: model-port
-              value: "8010"
+              value: "8000"
+        - name: train-neural-model
+          template: train-model
+          arguments:
+            parameters:
+            - name: features
+              value: "{{steps.extract-features.outputs.result}}"
+            - name: model-service
+              value: "model-service-neural"
+            - name: model-port
+              value: "8000"
 
     - name: fetch-data
       container:

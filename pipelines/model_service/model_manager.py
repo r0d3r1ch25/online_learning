@@ -1,6 +1,6 @@
 # model_manager.py
 
-from river import linear_model, tree, ensemble, preprocessing
+from river import linear_model, tree, ensemble, preprocessing, neural_net
 import os
 
 class ModelManager:
@@ -12,9 +12,7 @@ class ModelManager:
         models = {
             "linear_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(),
             "ridge_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(l2=1.0),
-            "lasso_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(l1=0.1),
-            "decision_tree": tree.HoeffdingTreeRegressor(),
-            "bagging_regressor": ensemble.BaggingRegressor(model=tree.HoeffdingTreeRegressor(), n_models=10)
+            "neural_network": preprocessing.StandardScaler() | neural_net.MLPRegressor(hidden_dims=(5,))
         }
         
         self.model = models.get(model_name, models["linear_regression"])

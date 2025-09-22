@@ -7,11 +7,12 @@ CLUSTER_NAME = ml-cluster
 # Cluster management
 cluster-up:
 	k3d cluster create $(CLUSTER_NAME) \
-		--port "8000:8000@loadbalancer" \
 		--port "8001:8001@loadbalancer" \
 		--port "8002:8002@loadbalancer" \
 		--port "8003:8003@loadbalancer" \
 		--port "8010:8010@loadbalancer" \
+		--port "8011:8011@loadbalancer" \
+		--port "8012:8012@loadbalancer" \
 		--port "2746:2746@loadbalancer" \
 		--port "3000:3000@loadbalancer" \
 		--port "9090:9090@loadbalancer" \

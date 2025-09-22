@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: model-service-ridge
+  name: model-service-neural
   labels:
-    app: model-service-ridge
+    app: model-service-neural
 spec:
   type: LoadBalancer
   ports:
-  - port: 8011
+  - port: 8012
     targetPort: 8000
   selector:
-    app: model-service-ridge
+    app: model-service-neural

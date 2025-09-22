@@ -9,11 +9,13 @@ resources:
   - deployments/feature-service.yaml
   - deployments/model-service.yaml
   - deployments/model-service-ridge.yaml
+  - deployments/model-service-neural.yaml
   - deployments/coinbase-deployment.yaml
   - services/ingestion-service.yaml
   - services/feature-service.yaml
   - services/model-service.yaml
   - services/model-service-ridge.yaml
+  - services/model-service-neural.yaml
   - services/coinbase-service.yaml
 
 labels:
