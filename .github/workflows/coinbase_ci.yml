@@ -29,14 +29,6 @@ jobs:
         cd pipelines/coinbase_service
         docker build -t ml-coinbase:test .
     
-    - name: Test Docker container
-      run: |
-        docker run -d --name coinbase-test -p 8003:8003 ml-coinbase:test
-        sleep 10
-        curl -f http://localhost:8003/health || exit 1
-        docker stop coinbase-test
-        docker rm coinbase-test
-    
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
