@@ -7,13 +7,13 @@ resources:
   - namespace.yaml
   - deployments/ingestion-service.yaml
   - deployments/feature-service.yaml
-  - deployments/model-service.yaml
+  - deployments/model-service-linear.yaml
   - deployments/model-service-ridge.yaml
   - deployments/model-service-neural.yaml
   - deployments/coinbase-deployment.yaml
   - services/ingestion-service.yaml
   - services/feature-service.yaml
-  - services/model-service.yaml
+  - services/model-service-linear.yaml
   - services/model-service-ridge.yaml
   - services/model-service-neural.yaml
   - services/coinbase-service.yaml

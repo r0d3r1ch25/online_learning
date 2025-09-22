@@ -110,7 +110,7 @@ online_learning/
 #### ml-services
 - **ingestion-service**: Data streaming API (Port 8002)
 - **feature-service**: Time series feature extraction API (Port 8001)
-- **model-service**: Linear regression model API (Port 8010)
+- **model-service-linear**: Linear regression model API (Port 8010)
 - **model-service-ridge**: Ridge regression model API (Port 8011)
 - **model-service-neural**: Neural network model API (Port 8012)
 - **coinbase-service**: Cryptocurrency data streaming API (Port 8003)

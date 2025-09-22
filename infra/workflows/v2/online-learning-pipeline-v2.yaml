@@ -27,7 +27,7 @@ spec:
             - name: features
               value: "{{steps.extract-features.outputs.result}}"
             - name: model-service
-              value: "model-service"
+              value: "model-service-linear"
             - name: model-port
               value: "8000"
         - name: train-ridge-model

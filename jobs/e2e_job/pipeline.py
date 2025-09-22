@@ -13,7 +13,7 @@ import os
 # Service URLs
 INGESTION_URL = "http://ingestion-service.ml-services.svc.cluster.local:8002"
 FEATURE_URL = "http://feature-service.ml-services.svc.cluster.local:8001"
-MODEL_URL = "http://model-service.ml-services.svc.cluster.local:8000"
+MODEL_URL = "http://model-service-linear.ml-services.svc.cluster.local:8000"
 
 def log(message):
     """Log with timestamp and flush immediately"""
