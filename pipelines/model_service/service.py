@@ -96,20 +96,32 @@ def model_metrics():
     metrics_data = metrics_manager.get_metrics()
     
     # Add River model information
-    model_info = {
-        "model_type": str(type(model_manager.model).__name__),
-        "model_name": model_manager.model_name,
-        "model_str": str(model_manager.model),
-        "model_params": getattr(model_manager.model, '_get_params', lambda: {})() if hasattr(model_manager.model, '_get_params') else {},
-    }
-    
-    # Try to get more detailed info from River model
     try:
-        if hasattr(model_manager.model, '__dict__'):
-            model_dict = {k: str(v) for k, v in model_manager.model.__dict__.items() if not k.startswith('_')}
-            model_info["model_attributes"] = model_dict
-    except:
-        pass
+        model_info = {
+            "model_type": str(type(model_manager.model).__name__),
+            "model_name": model_manager.model_name,
+            "model_str": str(model_manager.model)[:200],
+        }
+        
+        # Try to get model attributes safely
+        try:
+            if hasattr(model_manager.model, '__dict__'):
+                safe_attrs = {}
+                for k, v in model_manager.model.__dict__.items():
+                    if not k.startswith('_'):
+                        try:
+                            safe_attrs[k] = str(v)[:100]
+                        except:
+                            safe_attrs[k] = str(type(v).__name__)
+                model_info["model_attributes"] = safe_attrs
+        except:
+            model_info["model_attributes"] = {}
+            
+    except Exception as e:
+        model_info = {
+            "model_name": model_manager.model_name,
+            "error": "Could not extract model info"
+        }
     
     # Add model info to response
     if isinstance(metrics_data, dict) and "message" not in metrics_data:
