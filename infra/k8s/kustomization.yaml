@@ -4,5 +4,4 @@ kind: Kustomization
 resources:
   - ml-services
   - argo
-  - feast
   - monitoring

@@ -8,9 +8,11 @@ resources:
   - deployments/ingestion-service.yaml
   - deployments/feature-service.yaml
   - deployments/model-service.yaml
+  - deployments/coinbase-deployment.yaml
   - services/ingestion-service.yaml
   - services/feature-service.yaml
   - services/model-service.yaml
+  - services/coinbase-service.yaml
 
 labels:
   - pairs:

@@ -42,17 +42,23 @@ online_learning/
 │   │   ├── Dockerfile        # Non-root container image
 │   │   ├── README.md         # Service documentation
 │   │   └── requirements.txt  # Python dependencies
-│   └── model_service/         # Online ML models
-│       ├── tests/            # Unit tests
-│       │   ├── test_integration.py
-│       │   └── test_requests.py
+│   ├── model_service/         # Online ML models
+│   │   ├── tests/            # Unit tests
+│   │   │   ├── test_integration.py
+│   │   │   └── test_requests.py
+│   │   ├── __init__.py       # Python package init
+│   │   ├── model_manager.py   # Online learning algorithms
+│   │   ├── metrics_manager.py # Performance tracking
+│   │   ├── service.py        # FastAPI service
+│   │   ├── main.py           # Application entry point
+│   │   ├── Dockerfile        # Non-root container image
+│   │   ├── README.md         # Service documentation
+│   │   └── requirements.txt  # Python dependencies
+│   └── coinbase_service/      # Cryptocurrency data streaming
 │       ├── __init__.py       # Python package init
-│       ├── model_manager.py   # Online learning algorithms
-│       ├── metrics_manager.py # Performance tracking
-│       ├── service.py        # FastAPI service
-│       ├── main.py           # Application entry point
+│       ├── service.py        # Coinbase API integration
+│       ├── main.py           # FastAPI application
 │       ├── Dockerfile        # Non-root container image
-│       ├── README.md         # Service documentation
 │       └── requirements.txt  # Python dependencies
 ├── jobs/                      # Job containers
 │   └── e2e_job/              # End-to-end pipeline job
@@ -74,7 +80,7 @@ online_learning/
 │   │   │   ├── kustomization.yaml
 │   │   │   ├── namespace.yaml
 │   │   │   └── quick-start-minimal.yaml
-│   │   ├── feast/            # Feature store infrastructure
+│   │   ├── feast/            # Feature store infrastructure (not deployed)
 │   │   │   ├── deployments/  # Feast, Redis, MinIO deployments
 │   │   │   ├── services/     # Service manifests
 │   │   │   ├── feast-config.yaml
@@ -107,11 +113,8 @@ online_learning/
 - **ingestion-service**: Data streaming API (Port 8002)
 - **feature-service**: Time series feature extraction API (Port 8001)
 - **model-service**: Online ML training and prediction API (Port 8000)
+- **coinbase-service**: Cryptocurrency data streaming API (Port 8003)
 
-#### feast
-- **feast-server**: Feature store API server (Port 6566)
-- **redis**: In-memory feature store (Port 6379)
-- **minio**: S3-compatible object storage (Ports 9000/9001)
 
 #### argo
 - **argo-server**: Workflow management UI (Port 2746)
@@ -142,8 +145,6 @@ Once deployed, access services via LoadBalancer:
 - **Model Service**: `http://<your-ip>:8000` - ML training/prediction
 - **Feature Service**: `http://<your-ip>:8001` - Feature extraction
 - **Ingestion Service**: `http://<your-ip>:8002` - Data streaming
-- **Feast Server**: `http://<your-ip>:6566` - Feature store API
-- **MinIO Console**: `http://<your-ip>:9001` - Storage dashboard (admin/password)
 - **Argo Server**: `https://<your-ip>:2746` - Workflow management
 - **Grafana**: `http://<your-ip>:3000` - Monitoring (admin/admin)
 - **Prometheus**: `http://<your-ip>:9090` - Metrics collection and monitoring
@@ -466,7 +467,7 @@ All images use non-root users for security and are automatically built and pushe
 
 **Infrastructure (Kubernetes Ready)**
 - ✅ k3d cluster with LoadBalancer support
-- ✅ 4 namespaces: ml-services, feast, argo, monitoring
+- ✅ 3 namespaces: ml-services, argo, monitoring
 - ✅ All services accessible via LoadBalancer
 - ✅ Health checks and resource limits configured
 
@@ -489,10 +490,7 @@ All images use non-root users for security and are automatically built and pushe
 - ✅ Pre-configured data sources in Grafana
 - ✅ Dashboard accessible via LoadBalancer
 
-**Feature Store**
-- ✅ Feast server with Redis + MinIO
-- ✅ S3-compatible storage configured
-- ✅ Feature store API accessible
+
 
 ### 🚀 Ready to Use
 

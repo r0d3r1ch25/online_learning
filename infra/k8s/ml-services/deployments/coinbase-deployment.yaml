@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coinbase-service
+  namespace: ml-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coinbase-service
+  template:
+    metadata:
+      labels:
+        app: coinbase-service
+    spec:
+      containers:
+      - name: coinbase-service
+        image: r0d3r1ch25/ml-coinbase:latest
+        ports:
+        - containerPort: 8003
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 5
+          periodSeconds: 5
