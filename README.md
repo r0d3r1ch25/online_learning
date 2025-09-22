@@ -4,11 +4,15 @@ A complete MLOps platform for online learning experiments with real-time model t
 
 ## Architecture Overview
 
-The platform consists of three main microservices deployed on a k3d Kubernetes cluster:
+The platform consists of multiple microservices deployed on a k3d Kubernetes cluster:
 
 - **Ingestion Service** (Port 8002): Streams time series data observations one at a time
 - **Feature Service** (Port 8001): Calculates lag features and outputs model-ready format  
-- **Model Service** (Port 8000): Performs online machine learning with real-time training and prediction
+- **Model Services**: Multiple online ML models with real-time training and prediction
+  - **Linear Regression** (Port 8010)
+  - **Ridge Regression** (Port 8011) 
+  - **Neural Network** (Port 8012)
+- **Coinbase Service** (Port 8003): Cryptocurrency data streaming
 
 ## Project Structure
 
@@ -80,12 +84,6 @@ online_learning/
 │   │   │   ├── kustomization.yaml
 │   │   │   ├── namespace.yaml
 │   │   │   └── quick-start-minimal.yaml
-│   │   ├── feast/            # Feature store infrastructure (not deployed)
-│   │   │   ├── deployments/  # Feast, Redis, MinIO deployments
-│   │   │   ├── services/     # Service manifests
-│   │   │   ├── feast-config.yaml
-│   │   │   ├── kustomization.yaml
-│   │   │   └── namespace.yaml
 │   │   ├── monitoring/       # Observability stack
 │   │   │   ├── configmaps/   # Grafana, Prometheus, Promtail configs
 │   │   │   ├── deployments/  # Monitoring service deployments
@@ -112,7 +110,9 @@ online_learning/
 #### ml-services
 - **ingestion-service**: Data streaming API (Port 8002)
 - **feature-service**: Time series feature extraction API (Port 8001)
-- **model-service**: Online ML training and prediction API (Port 8000)
+- **model-service**: Linear regression model API (Port 8010)
+- **model-service-ridge**: Ridge regression model API (Port 8011)
+- **model-service-neural**: Neural network model API (Port 8012)
 - **coinbase-service**: Cryptocurrency data streaming API (Port 8003)
 
 
@@ -142,9 +142,12 @@ make apply
 
 Once deployed, access services via LoadBalancer:
 
-- **Model Service**: `http://<your-ip>:8000` - ML training/prediction
 - **Feature Service**: `http://<your-ip>:8001` - Feature extraction
 - **Ingestion Service**: `http://<your-ip>:8002` - Data streaming
+- **Coinbase Service**: `http://<your-ip>:8003` - Crypto data streaming
+- **Linear Model**: `http://<your-ip>:8010` - Linear regression ML
+- **Ridge Model**: `http://<your-ip>:8011` - Ridge regression ML
+- **Neural Model**: `http://<your-ip>:8012` - Neural network ML
 - **Argo Server**: `https://<your-ip>:2746` - Workflow management
 - **Grafana**: `http://<your-ip>:3000` - Monitoring (admin/admin)
 - **Prometheus**: `http://<your-ip>:9090` - Metrics collection and monitoring
@@ -153,14 +156,18 @@ Once deployed, access services via LoadBalancer:
 ### 3. Run Online Learning Pipeline
 
 ```bash
-# Start CronWorkflow (runs every minute)
+# Start v1 workflow (linear model only, every minute)
 make argo-e2e
 
-# Monitor workflows (keeps last 25 successful, 5 failed)
+# Start v2 workflow (all 3 models, every minute)
+kubectl apply -f infra/workflows/v2/online-learning-pipeline-v2.yaml
+
+# Monitor workflows
 argo list -n argo
 
-# Stop CronWorkflow
+# Stop workflows
 kubectl delete cronworkflow online-learning-cron-v1 -n argo
+kubectl delete cronworkflow online-learning-cron-v2 -n argo
 
 # Monitor in Argo UI
 open https://<your-ip>:2746
@@ -204,50 +211,70 @@ curl -X POST http://<your-ip>:8001/add \
 curl http://<your-ip>:8001/series/default
 ```
 
-### Model Service API
-
-**Feature-agnostic online ML service that accepts any number of input features dynamically.**
+### Coinbase Service API
 
 ```bash
 # Health check
-curl http://<your-ip>:8000/health
+curl http://<your-ip>:8003/health
 
-# Service information
-curl http://<your-ip>:8000/info
+# Get current XRP rate (inverse of Coinbase rate)
+curl http://<your-ip>:8003/next
+# Returns: {"series_id": "XRP", "target": 2.84, "datetime": "2024-01-15T08:30:25-06:00"}
+```
 
-# Train model with any features
-curl -X POST http://<your-ip>:8000/train \
+### Model Services API
+
+**Three independent model services with feature-agnostic online ML:**
+
+```bash
+# Linear Regression Model (Port 8010)
+curl http://<your-ip>:8010/health
+curl http://<your-ip>:8010/info
+
+# Ridge Regression Model (Port 8011)
+curl http://<your-ip>:8011/health
+curl http://<your-ip>:8011/info
+
+# Neural Network Model (Port 8012)
+curl http://<your-ip>:8012/health
+curl http://<your-ip>:8012/info
+
+# Train any model (example with linear model)
+curl -X POST http://<your-ip>:8010/train \
   -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 125.0, "in_2": 120.0, "custom_feature": 99.0}, "target": 130.0}'
+  -d '{"features": {"in_1": 125.0, "in_2": 120.0}, "target": 130.0}'
 
 # Predict (single-step horizon)
-curl -X POST http://<your-ip>:8000/predict \
+curl -X POST http://<your-ip>:8010/predict \
   -H "Content-Type: application/json" \
   -d '{"features": {"in_1": 130.0, "in_2": 125.0}}'
 # Returns: {"forecast": [{"value": 135.2}]}
 
 # Online learning (predict then learn)
-curl -X POST http://<your-ip>:8000/predict_learn \
+curl -X POST http://<your-ip>:8010/predict_learn \
   -H "Content-Type: application/json" \
   -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
 # Returns: {"prediction": 138.7}
 
-# Get comprehensive model performance metrics (MAE, MSE, RMSE)
-curl http://<your-ip>:8000/model_metrics
+# Get model performance metrics (MAE, MSE, RMSE, MAPE)
+curl http://<your-ip>:8010/model_metrics
 
-# Get Prometheus-compatible metrics for monitoring
-curl http://<your-ip>:8000/metrics
+# Get Prometheus-compatible metrics
+curl http://<your-ip>:8010/metrics
 ```
+
+**Available Models:**
+- **Linear Regression**: Standard linear regression with StandardScaler
+- **Ridge Regression**: L2 regularized linear regression
+- **Neural Network**: MLP with 5 hidden neurons and ReLU activation
 
 **Key Features:**
 - **Feature Agnostic**: Accepts any number of input features dynamically
 - **Configurable Lags**: N_LAGS environment variable controls feature service output (default: 12)
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
-- **Multiple Models**: Linear, Ridge, Lasso, Decision Tree, Bagging Regressor via MODEL_NAME env var
-- **No Feature Validation**: River models handle any feature set automatically
-- **Performance Tracking**: /model_metrics endpoint with MAE, MSE, RMSE
-- **Prometheus Ready**: /metrics endpoint for monitoring stack integration
-- **Easy Model Switching**: Change MODEL_NAME environment variable
+- **Independent Scaling**: Each model can scale separately
+- **Performance Tracking**: /model_metrics endpoint with MAE, MSE, RMSE, MAPE
+- **Prometheus Ready**: /metrics endpoint with model labels for monitoring
 
 ## Development Commands
 
@@ -312,10 +339,12 @@ open http://localhost:3000  # admin/admin
 ```
 
 **Prometheus Queries (Metrics):**
-- `ml_model_mae` - Mean Absolute Error
-- `ml_model_rmse` - Root Mean Squared Error  
-- `ml_model_predictions_total` - Total predictions count
-- `ml_model_last_prediction` - Last prediction value
+- `ml_model_mae{model="linear_regression"}` - Linear model MAE
+- `ml_model_mae{model="ridge_regression"}` - Ridge model MAE
+- `ml_model_mae{model="neural_network"}` - Neural model MAE
+- `ml_model_rmse{model=~"linear_regression|ridge_regression|neural_network"}` - All models RMSE
+- `ml_model_mape{model=~".*"}` - All models MAPE
+- `ml_model_predictions_total` - Total predictions count by model
 
 **Loki Queries (Logs):**
 - `{app="model-service"}` - All model service logs
@@ -373,10 +402,10 @@ export N_LAGS=8  # Creates in_1 to in_8
 ```
 
 ### Model Configuration
-```bash
-# Change model type
-export MODEL_NAME=ridge_regression  # Options: linear_regression, ridge_regression, lasso_regression, decision_tree, bagging_regressor
-```
+Models are configured via environment variables in Kubernetes deployments:
+- **Linear**: `MODEL_NAME=linear_regression`
+- **Ridge**: `MODEL_NAME=ridge_regression` 
+- **Neural**: `MODEL_NAME=neural_network`
 
 ## Dataset
 
@@ -390,9 +419,12 @@ The platform uses a sample time series dataset (`data.csv`) with monthly observa
 ### Service Connectivity
 ```bash
 # Test service health
-curl http://<your-ip>:8000/health  # Model service
 curl http://<your-ip>:8001/health  # Feature service  
 curl http://<your-ip>:8002/health  # Ingestion service
+curl http://<your-ip>:8003/health  # Coinbase service
+curl http://<your-ip>:8010/health  # Linear model
+curl http://<your-ip>:8011/health  # Ridge model
+curl http://<your-ip>:8012/health  # Neural model
 ```
 
 ### Logs and Monitoring
@@ -417,7 +449,8 @@ All images use non-root users for security and are automatically built and pushe
 
 - **ml-ingestion**: `r0d3r1ch25/ml-ingestion:latest` - Time series data streaming service
 - **ml-features**: `r0d3r1ch25/ml-features:latest` - Feature extraction service  
-- **ml-model**: `r0d3r1ch25/ml-model:latest` - Online ML training and prediction service
+- **ml-model**: `r0d3r1ch25/ml-model:latest` - Online ML service (used by all 3 model deployments)
+- **ml-coinbase**: `r0d3r1ch25/ml-coinbase:latest` - Cryptocurrency data streaming service
 - **ml-e2e-job**: `r0d3r1ch25/ml-e2e-job:latest` - End-to-end pipeline orchestration job
 
 **Security Features:**

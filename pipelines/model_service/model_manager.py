@@ -12,7 +12,7 @@ class ModelManager:
         models = {
             "linear_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(),
             "ridge_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(l2=1.0),
-            "neural_network": preprocessing.StandardScaler() | neural_net.MLPRegressor(hidden_dims=(5,))
+            "neural_network": preprocessing.StandardScaler() | neural_net.MLPRegressor(hidden_dims=(5,), activations=(neural_net.activations.ReLU, neural_net.activations.Identity))
         }
         
         self.model = models.get(model_name, models["linear_regression"])
