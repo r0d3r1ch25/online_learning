@@ -119,6 +119,10 @@ def prometheus_metrics():
         prometheus_output.append(f"# TYPE ml_model_rmse gauge")
         prometheus_output.append(f'ml_model_rmse{{series="{series_id}"}} {data.get("rmse", 0)}')
         
+        prometheus_output.append(f"# HELP ml_model_mape Mean Absolute Percentage Error")
+        prometheus_output.append(f"# TYPE ml_model_mape gauge")
+        prometheus_output.append(f'ml_model_mape{{series="{series_id}"}} {data.get("mape", 0)}')
+        
         prometheus_output.append(f"# HELP ml_model_predictions_total Total number of predictions")
         prometheus_output.append(f"# TYPE ml_model_predictions_total counter")
         prometheus_output.append(f'ml_model_predictions_total{{series="{series_id}"}} {data.get("count", 0)}')
