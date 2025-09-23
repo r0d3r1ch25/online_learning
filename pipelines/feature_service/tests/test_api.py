@@ -16,8 +16,8 @@ def test_info():
     assert response.status_code == 200
     data = response.json()
     assert data["service"] == "feature_service"
-    assert data["max_lags"] == 12
-    assert data["output_format"] == "model_ready_in_1_to_in_12"
+    assert data["max_lags"] == 10  # N_LAGS=10 in CI
+    assert data["output_format"] == "model_ready_in_1_to_in_10"
     assert "series_info" in data
 
 def test_add_observation():
@@ -36,10 +36,10 @@ def test_add_observation():
     # Check model-ready format - first observation has no previous lags
     features = data["features"]
     assert "in_1" in features
-    assert "in_12" in features
+    assert "in_10" in features
     assert features["in_1"] == 0.0  # No previous observations
     assert data["target"] == 100.0  # Current observation as target
-    assert len(features) == 12
+    assert len(features) == 10
 
 def test_add_multiple_observations():
     series_id = "multi_test"
@@ -140,7 +140,7 @@ def test_default_series_id():
     assert data["series_id"] == "default"
 
 def test_feature_format_consistency():
-    """Test that all features follow in_1 to in_12 format"""
+    """Test that all features follow in_1 to in_10 format"""
     payload = {
         "series_id": "format_test",
         "value": 300.0
@@ -150,10 +150,10 @@ def test_feature_format_consistency():
     data = response.json()
     
     features = data["features"]
-    # Should have exactly 12 features
-    assert len(features) == 12
+    # Should have exactly 10 features (N_LAGS=10 in CI)
+    assert len(features) == 10
     
-    # Should have in_1 through in_12
-    for i in range(1, 13):
+    # Should have in_1 through in_10
+    for i in range(1, 11):
         assert f"in_{i}" in features
         assert isinstance(features[f"in_{i}"], (int, float))

@@ -267,7 +267,7 @@ curl http://<your-ip>:8010/metrics
 
 **Key Features:**
 - **Feature Agnostic**: Accepts any number of input features dynamically
-- **Configurable Lags**: N_LAGS environment variable controls feature service output (default: 15)
+- **Configurable Lags**: N_LAGS environment variable controls feature service output (set in deployment YAML: 15)
 - **Persistent Storage**: Redis FIFO lists store lag features, survives pod restarts
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
 - **Independent Scaling**: Each model can scale separately

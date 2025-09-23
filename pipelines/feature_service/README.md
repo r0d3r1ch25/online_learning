@@ -13,7 +13,7 @@ The Feature Service processes time series observations and extracts lag features
 - **Multiple Series Support**: Handles multiple independent time series via series_id
 - **Redis Persistence**: Uses Redis FIFO lists for persistent lag storage with automatic fallback
 - **Zero-Fill**: Missing lags are automatically filled with 0.0
-- **Configurable Lags**: N_LAGS environment variable (default: 15)
+- **Configurable Lags**: N_LAGS environment variable (must be set in deployment YAML)
 
 ## API Endpoints
 
@@ -119,7 +119,7 @@ Missing lags are filled with `0.0`.
 ### Configuration
 
 Environment variable:
-- `N_LAGS`: Number of lag features (default: 12)
+- `N_LAGS`: Number of lag features (must be set in deployment YAML, currently: 15)
 
 ## Usage Examples
 

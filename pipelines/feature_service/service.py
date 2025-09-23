@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Feature Service", version="1.0.0")
 
-# Global feature manager
-feature_manager = LagFeatureManager(max_lags=12)
+# Global feature manager - uses N_LAGS from environment variable
+feature_manager = LagFeatureManager()
 
 class ExtractRequest(BaseModel):
     series_id: str = "default"
@@ -34,7 +34,7 @@ async def get_info():
     return {
         "service": "feature_service",
         "max_lags": feature_manager.max_lags,
-        "output_format": "model_ready_in_1_to_in_12",
+        "output_format": f"model_ready_in_1_to_in_{feature_manager.max_lags}",
         "series_info": feature_manager.get_series_info()
     }
 
@@ -45,15 +45,15 @@ async def add_observation(request: ExtractRequest):
         # Extract features in model-ready format (in_1 to in_12)
         features = feature_manager.extract_features(request.series_id, request.value)
         
-        # Get available lags count
-        buffer = feature_manager.series_buffers.get(request.series_id)
-        available_lags = len(buffer) if buffer else 0
+        # Get available lags count from series info
+        series_info = feature_manager.get_series_info()
+        available_lags = series_info.get(request.series_id, {}).get('available_lags', 0)
         
         return ExtractResponse(
             series_id=request.series_id,
             features=features,
             target=request.value,
-            available_lags=min(available_lags, feature_manager.max_lags)
+            available_lags=available_lags
         )
     except Exception as e:
         logger.error(f"Error extracting features: {e}")
