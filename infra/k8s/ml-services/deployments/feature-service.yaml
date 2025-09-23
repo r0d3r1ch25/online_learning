@@ -25,7 +25,7 @@ spec:
         - name: PORT
           value: "8001"
         - name: N_LAGS
-          value: "13"
+          value: "15"
         - name: REDIS_HOST
           value: "redis.ml-services.svc.cluster.local"
         - name: REDIS_PORT

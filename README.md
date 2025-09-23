@@ -267,7 +267,7 @@ curl http://<your-ip>:8010/metrics
 
 **Key Features:**
 - **Feature Agnostic**: Accepts any number of input features dynamically
-- **Configurable Lags**: N_LAGS environment variable controls feature service output (default: 13)
+- **Configurable Lags**: N_LAGS environment variable controls feature service output (default: 15)
 - **Persistent Storage**: Redis FIFO lists store lag features, survives pod restarts
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
 - **Independent Scaling**: Each model can scale separately
@@ -394,7 +394,7 @@ Each service has automated GitHub Actions that trigger on:
 The number of lag features can be configured via environment variable:
 
 ```bash
-# Change number of lag features (default: 13)
+# Change number of lag features (default: 15)
 export N_LAGS=8  # Creates in_1 to in_8
 
 # Feature service will generate: in_1, in_2, ..., in_8
@@ -462,7 +462,7 @@ kubectl exec -n ml-services deployment/redis -- redis-cli LRANGE "series:feature
 Each microservice has detailed documentation in its respective directory:
 
 - **[Ingestion Service](pipelines/ingestion_service/README.md)**: Time series data streaming API with sequential observation delivery
-- **[Feature Service](pipelines/feature_service/README.md)**: Lag feature calculation with model-ready output format (in_1 to in_13)
+- **[Feature Service](pipelines/feature_service/README.md)**: Lag feature calculation with model-ready output format (in_1 to in_15)
 - **[Model Service](pipelines/model_service/README.md)**: Feature-agnostic online ML service with multiple regression models
 - **[E2E Job](jobs/e2e_job/README.md)**: End-to-end pipeline orchestration job for Argo Workflows
 
@@ -635,7 +635,7 @@ curl http://<your-ip>:8001/health
 Get service and series information.
 ```bash
 curl http://<your-ip>:8001/info
-# Returns: {"service": "feature_service", "max_lags": 13, "output_format": "model_ready_in_1_to_in_13", "series_info": {}}
+# Returns: {"service": "feature_service", "max_lags": 15, "output_format": "model_ready_in_1_to_in_15", "series_info": {}}
 ```
 
 #### `POST /add`

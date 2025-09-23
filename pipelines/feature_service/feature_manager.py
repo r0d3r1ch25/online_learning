@@ -6,8 +6,11 @@ import redis
 
 logger = logging.getLogger(__name__)
 
-# Configuration - change this value to adjust number of lags
-N_LAGS = int(os.getenv('N_LAGS', '12'))
+# Configuration - N_LAGS must be provided via environment variable
+try:
+    N_LAGS = int(os.getenv('N_LAGS'))
+except (TypeError, ValueError):
+    raise ValueError("N_LAGS environment variable must be set to a valid integer in deployment YAML")
 REDIS_HOST = os.getenv('REDIS_HOST', 'redis.ml-services.svc.cluster.local')
 REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
 
