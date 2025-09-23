@@ -7,11 +7,11 @@ A complete MLOps platform for online learning experiments with real-time model t
 The platform consists of multiple microservices deployed on a k3d Kubernetes cluster:
 
 - **Ingestion Service** (Port 8002): Streams time series data observations one at a time
-- **Feature Service** (Port 8001): Calculates lag features and outputs model-ready format  
+- **Feature Service** (Port 8001): Calculates lag features with Redis persistence and outputs model-ready format  
 - **Model Services**: Multiple online ML models with real-time training and prediction
   - **Linear Regression** (Port 8010)
   - **Ridge Regression** (Port 8011) 
-  - **Neural Network** (Port 8012)
+  - **KNN Regressor** (Port 8012)
 - **Coinbase Service** (Port 8003): Cryptocurrency data streaming
 
 ## Project Structure
@@ -112,8 +112,9 @@ online_learning/
 - **feature-service**: Time series feature extraction API (Port 8001)
 - **model-service-linear**: Linear regression model API (Port 8010)
 - **model-service-ridge**: Ridge regression model API (Port 8011)
-- **model-service-neural**: Neural network model API (Port 8012)
+- **model-service-knn**: KNN regressor model API (Port 8012)
 - **coinbase-service**: Cryptocurrency data streaming API (Port 8003)
+- **redis**: Persistent storage for lag features (Port 6379)
 
 
 #### argo
@@ -266,11 +267,12 @@ curl http://<your-ip>:8010/metrics
 **Available Models:**
 - **Linear Regression**: Standard linear regression with StandardScaler
 - **Ridge Regression**: L2 regularized linear regression
-- **Neural Network**: MLP with 5 hidden neurons and ReLU activation
+- **KNN Regressor**: K-Nearest Neighbors with 5 neighbors
 
 **Key Features:**
 - **Feature Agnostic**: Accepts any number of input features dynamically
 - **Configurable Lags**: N_LAGS environment variable controls feature service output (default: 12)
+- **Persistent Storage**: Redis FIFO lists store lag features, survives pod restarts
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
 - **Independent Scaling**: Each model can scale separately
 - **Performance Tracking**: /model_metrics endpoint with MAE, MSE, RMSE, MAPE
@@ -341,8 +343,8 @@ open http://localhost:3000  # admin/admin
 **Prometheus Queries (Metrics):**
 - `ml_model_mae{model="linear_regression"}` - Linear model MAE
 - `ml_model_mae{model="ridge_regression"}` - Ridge model MAE
-- `ml_model_mae{model="neural_network"}` - Neural model MAE
-- `ml_model_rmse{model=~"linear_regression|ridge_regression|neural_network"}` - All models RMSE
+- `ml_model_mae{model="knn_regressor"}` - KNN model MAE
+- `ml_model_rmse{model=~"linear_regression|ridge_regression|knn_regressor"}` - All models RMSE
 - `ml_model_mape{model=~".*"}` - All models MAPE
 - `ml_model_predictions_total` - Total predictions count by model
 
@@ -383,7 +385,7 @@ Each service has automated GitHub Actions that trigger on:
 ## Data Flow
 
 1. **Ingestion Service** streams time series observations (date, value pairs)
-2. **Feature Service** calculates lag features and outputs model-ready format (in_1 to in_{N_LAGS})
+2. **Feature Service** calculates lag features with Redis persistence and outputs model-ready format (in_1 to in_{N_LAGS})
 3. **Model Service** performs feature-agnostic online learning with any features provided
 4. **Argo CronWorkflow** orchestrates the end-to-end pipeline every minute
 5. **Monitoring Stack** tracks logs and metrics across all services
@@ -405,7 +407,14 @@ export N_LAGS=8  # Creates in_1 to in_8
 Models are configured via environment variables in Kubernetes deployments:
 - **Linear**: `MODEL_NAME=linear_regression`
 - **Ridge**: `MODEL_NAME=ridge_regression` 
-- **Neural**: `MODEL_NAME=neural_network`
+- **KNN**: `MODEL_NAME=knn_regressor`
+
+### Redis Configuration
+Feature service uses Redis for persistent lag feature storage:
+- **Host**: `REDIS_HOST=redis.ml-services.svc.cluster.local`
+- **Port**: `REDIS_PORT=6379`
+- **Fallback**: Automatic fallback to in-memory storage if Redis unavailable
+- **Storage**: FIFO lists with automatic size management (LPUSH/LTRIM)
 
 ## Dataset
 
@@ -424,7 +433,7 @@ curl http://<your-ip>:8002/health  # Ingestion service
 curl http://<your-ip>:8003/health  # Coinbase service
 curl http://<your-ip>:8010/health  # Linear model
 curl http://<your-ip>:8011/health  # Ridge model
-curl http://<your-ip>:8012/health  # Neural model
+curl http://<your-ip>:8012/health  # KNN model
 ```
 
 ### Logs and Monitoring
@@ -433,6 +442,18 @@ curl http://<your-ip>:8012/health  # Neural model
 - **Loki**: Log aggregation from all services via Promtail
 - **Argo Workflows**: `https://<your-ip>:2746` - Pipeline orchestration
 - **Pod Logs**: `kubectl logs -n ml-services <pod-name>`
+
+### Redis Storage Verification
+```bash
+# Check Redis connection
+kubectl logs -n ml-services deployment/feature-service | grep REDIS
+
+# Look for these log patterns:
+# REDIS CONNECTED: Using Redis for persistent lag features
+# REDIS UNAVAILABLE: Using in-memory storage
+# REDIS: Added observation (persistent storage)
+# MEMORY: Added observation (temporary storage)
+```
 
 ## Service Documentation
 
@@ -463,7 +484,7 @@ All images use non-root users for security and are automatically built and pushe
 - **Container Orchestration**: Kubernetes (k3d)
 - **Workflow Engine**: Argo Workflows
 - **API Framework**: FastAPI
-- **Feature Store**: Feast + Redis + MinIO
+- **Feature Storage**: Redis FIFO lists for lag features
 - **Monitoring**: Grafana + Loki + Promtail + Prometheus
 - **CI/CD**: GitHub Actions
 - **Container Registry**: Docker Hub
@@ -476,6 +497,7 @@ All images use non-root users for security and are automatically built and pushe
 - **Uvicorn**: ASGI server
 - **Pydantic**: Data validation
 - **River**: Online machine learning library
+- **Redis**: Persistent storage for lag features
 - **Pandas**: Data manipulation (ingestion service)
 - **Requests**: HTTP client library
 
@@ -495,8 +517,9 @@ All images use non-root users for security and are automatically built and pushe
 
 **Microservices (All Deployed)**
 - ✅ Ingestion Service: Streaming time series data (Port 8002)
-- ✅ Feature Service: Lag feature extraction (Port 8001) 
-- ✅ Model Service: Online ML with River (Port 8000)
+- ✅ Feature Service: Lag feature extraction with Redis persistence (Port 8001) 
+- ✅ Model Services: Online ML with River (Ports 8010, 8011, 8012)
+- ✅ Redis: Persistent storage for lag features (Port 6379)
 
 **Infrastructure (Kubernetes Ready)**
 - ✅ k3d cluster with LoadBalancer support

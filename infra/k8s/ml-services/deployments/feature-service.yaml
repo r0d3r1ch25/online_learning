@@ -26,6 +26,10 @@ spec:
           value: "8001"
         - name: N_LAGS
           value: "12"
+        - name: REDIS_HOST
+          value: "redis.ml-services.svc.cluster.local"
+        - name: REDIS_PORT
+          value: "6379"
         resources:
           requests:
             memory: "256Mi"

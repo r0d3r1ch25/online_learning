@@ -1,15 +1,21 @@
 import pytest
+from unittest.mock import patch
 from feature_manager import LagFeatureManager
 
 def test_lag_feature_manager_init():
     """Test LagFeatureManager initialization."""
-    manager = LagFeatureManager(max_lags=5)
-    assert manager.max_lags == 5
-    assert len(manager.series_buffers) == 0
+    with patch('redis.Redis') as mock_redis:
+        mock_redis.side_effect = Exception("Redis unavailable")
+        manager = LagFeatureManager(max_lags=5)
+        assert manager.max_lags == 5
+        assert len(manager.series_buffers) == 0
+        assert manager.use_redis == False
 
 def test_add_observation():
     """Test adding observations to series."""
-    manager = LagFeatureManager(max_lags=3)
+    with patch('redis.Redis') as mock_redis:
+        mock_redis.side_effect = Exception("Redis unavailable")
+        manager = LagFeatureManager(max_lags=3)
     
     manager.add_observation("test_series", 100.0)
     manager.add_observation("test_series", 105.0)
@@ -19,7 +25,9 @@ def test_add_observation():
 
 def test_extract_features():
     """Test extracting model-ready features."""
-    manager = LagFeatureManager(max_lags=12)
+    with patch('redis.Redis') as mock_redis:
+        mock_redis.side_effect = Exception("Redis unavailable")
+        manager = LagFeatureManager(max_lags=12)
     
     # Add some observations
     values = [100, 105, 110]
@@ -45,7 +53,9 @@ def test_extract_features():
 
 def test_extract_features_empty_series():
     """Test extracting features for new series."""
-    manager = LagFeatureManager(max_lags=12)
+    with patch('redis.Redis') as mock_redis:
+        mock_redis.side_effect = Exception("Redis unavailable")
+        manager = LagFeatureManager(max_lags=12)
     
     # Extract features for new series (no previous observations)
     features = manager.extract_features("new_series", 50.0)
@@ -59,7 +69,9 @@ def test_extract_features_empty_series():
 
 def test_max_lags_limit():
     """Test that buffer respects max_lags limit."""
-    manager = LagFeatureManager(max_lags=3)
+    with patch('redis.Redis') as mock_redis:
+        mock_redis.side_effect = Exception("Redis unavailable")
+        manager = LagFeatureManager(max_lags=3)
     
     # Add more observations than max_lags
     for i in range(5):
@@ -70,7 +82,9 @@ def test_max_lags_limit():
 
 def test_get_series_info():
     """Test getting series information."""
-    manager = LagFeatureManager(max_lags=5)
+    with patch('redis.Redis') as mock_redis:
+        mock_redis.side_effect = Exception("Redis unavailable")
+        manager = LagFeatureManager(max_lags=5)
     
     manager.add_observation("series1", 100)
     manager.add_observation("series1", 105)

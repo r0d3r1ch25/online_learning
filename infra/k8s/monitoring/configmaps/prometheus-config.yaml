@@ -27,9 +27,9 @@ data:
         scrape_interval: 30s
         scrape_timeout: 10s
 
-      - job_name: 'ml-model-neural'
+      - job_name: 'ml-model-knn'
         static_configs:
-          - targets: ['model-service-neural.ml-services.svc.cluster.local:8012']
+          - targets: ['model-service-knn.ml-services.svc.cluster.local:8012']
         metrics_path: '/metrics'
         scrape_interval: 30s
         scrape_timeout: 10s

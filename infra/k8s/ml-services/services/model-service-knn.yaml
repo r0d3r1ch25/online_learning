@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: model-service-neural
+  name: model-service-knn
   labels:
-    app: model-service-neural
+    app: model-service-knn
 spec:
   type: LoadBalancer
   ports:
   - port: 8012
     targetPort: 8000
   selector:
-    app: model-service-neural
+    app: model-service-knn

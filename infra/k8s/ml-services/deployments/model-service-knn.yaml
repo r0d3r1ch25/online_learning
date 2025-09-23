@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: model-service-neural
+  name: model-service-knn
   labels:
-    app: model-service-neural
+    app: model-service-knn
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: model-service-neural
+      app: model-service-knn
   template:
     metadata:
       labels:
-        app: model-service-neural
+        app: model-service-knn
     spec:
       containers:
-      - name: model-service-neural
+      - name: model-service-knn
         image: r0d3r1ch25/ml-model:latest
         ports:
         - containerPort: 8000
         env:
         - name: MODEL_NAME
-          value: "neural_network"
+          value: "knn_regressor"
         - name: HOST
           value: "0.0.0.0"
         - name: PORT
