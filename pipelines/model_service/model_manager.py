@@ -1,6 +1,6 @@
 # model_manager.py
 
-from river import linear_model, tree, ensemble, preprocessing, neighbors
+from river import linear_model, tree, ensemble, preprocessing, neighbors, forest
 import os
 
 class ModelManager:
@@ -13,7 +13,7 @@ class ModelManager:
             "linear_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(),
             "ridge_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(l2=1.0),
             "knn_regressor": preprocessing.StandardScaler() | neighbors.KNNRegressor(n_neighbors=5),
-            "amf_regressor": preprocessing.StandardScaler() | ensemble.AMFRegressor(n_models=10, max_features='sqrt')
+            "amf_regressor": preprocessing.StandardScaler() | forest.AMFRegressor(n_models=10, max_features='sqrt')
         }
         
         self.model = models.get(model_name, models["linear_regression"])
