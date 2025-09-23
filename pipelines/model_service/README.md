@@ -9,7 +9,7 @@ The model service provides online learning capabilities with support for multipl
 ## Features
 
 - **Feature Agnostic**: Accepts any number of input features dynamically
-- **Multiple Regression Models**: Linear, Ridge, Lasso, Decision Tree, Bagging Regressor
+- **Multiple Regression Models**: Linear, Ridge, KNN Regressor
 - **Easy Model Switching**: Via MODEL_NAME environment variable
 - **Online Learning**: Real-time predict-then-learn workflow
 - **Single-Step Prediction**: FORECAST_HORIZON=1 for simplified predictions
@@ -26,9 +26,7 @@ Change the model by setting the MODEL_NAME environment variable:
 # Available models:
 export MODEL_NAME=linear_regression    # Default - Linear Regression with StandardScaler
 export MODEL_NAME=ridge_regression     # Ridge Regression (L2 regularization)
-export MODEL_NAME=lasso_regression     # Lasso Regression (L1 regularization)  
-export MODEL_NAME=decision_tree        # Hoeffding Tree Regressor
-export MODEL_NAME=bagging_regressor    # Bagging Regressor with Trees
+export MODEL_NAME=knn_regressor        # KNN Regressor with 5 neighbors
 ```
 
 ## API Endpoints
@@ -55,7 +53,7 @@ Service information including current model configuration.
   "forecast_horizon": 1,
   "feature_agnostic": true,
   "regression_model": true,
-  "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]
+  "available_models": ["linear_regression", "ridge_regression", "knn_regressor"]
 }
 ```
 
@@ -222,16 +220,17 @@ curl -X POST http://localhost:8000/predict_learn \
 curl http://localhost:8000/model_metrics
 ```
 
-### Complete Workflow with All 12 Features
+### Complete Workflow with All 15 Features
 ```bash
-# Train with all 12 input features
+# Train with all 15 input features
 curl -X POST http://localhost:8000/train \
   -H "Content-Type: application/json" \
   -d '{
     "features": {
       "in_1": 125.0, "in_2": 120.0, "in_3": 115.0, "in_4": 110.0,
       "in_5": 105.0, "in_6": 100.0, "in_7": 95.0, "in_8": 90.0,
-      "in_9": 85.0, "in_10": 80.0, "in_11": 75.0, "in_12": 70.0
+      "in_9": 85.0, "in_10": 80.0, "in_11": 75.0, "in_12": 70.0,
+      "in_13": 65.0, "in_14": 60.0, "in_15": 55.0
     },
     "target": 130.0
   }'

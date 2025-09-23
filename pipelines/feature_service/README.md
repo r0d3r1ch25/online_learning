@@ -1,6 +1,6 @@
 # Feature Service
 
-Lag feature extraction service for time series data. Calculates lag features and outputs model-ready format for the model service.
+Lag feature extraction service with Redis persistence for time series data. Calculates lag features and outputs model-ready format for the model service.
 
 ## Overview
 
@@ -8,12 +8,12 @@ The Feature Service processes time series observations and extracts lag features
 
 ## Key Features
 
-- **Lag Feature Calculation**: Computes up to 12 lag features from time series data
-- **Model-Ready Output**: Returns features in `in_1` to `in_12` format for direct model input
+- **Lag Feature Calculation**: Computes up to 15 lag features from time series data
+- **Model-Ready Output**: Returns features in `in_1` to `in_15` format for direct model input
 - **Multiple Series Support**: Handles multiple independent time series via series_id
-- **Stateful Processing**: Maintains internal buffers for lag calculation using deque
+- **Redis Persistence**: Uses Redis FIFO lists for persistent lag storage with automatic fallback
 - **Zero-Fill**: Missing lags are automatically filled with 0.0
-- **Configurable Lags**: N_LAGS environment variable (default: 12)
+- **Configurable Lags**: N_LAGS environment variable (default: 15)
 
 ## API Endpoints
 
@@ -35,8 +35,8 @@ Service information including configuration and series data.
 ```json
 {
   "service": "feature_service",
-  "max_lags": 12,
-  "output_format": "model_ready_in_1_to_in_12",
+  "max_lags": 15,
+  "output_format": "model_ready_in_1_to_in_15",
   "series_info": {}
 }
 ```
@@ -68,7 +68,10 @@ Add observation and extract lag features in model-ready format.
     "in_9": 0.0,
     "in_10": 0.0,
     "in_11": 0.0,
-    "in_12": 0.0
+    "in_12": 0.0,
+    "in_13": 0.0,
+    "in_14": 0.0,
+    "in_15": 0.0
   },
   "target": 125.0,
   "available_lags": 3

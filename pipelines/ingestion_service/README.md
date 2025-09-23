@@ -1,6 +1,6 @@
 # Data Ingestion Service
 
-A streaming service that serves time series CSV data one observation at a time via REST API for online learning workflows.
+A streaming service that serves time series CSV data one observation at a time via REST API for online learning workflows. Integrated with Argo CronWorkflow running every 2 minutes.
 
 ## Overview
 
@@ -175,4 +175,4 @@ curl -s http://localhost:8002/next | \
     --data-binary @- http://localhost:8001/add
 ```
 
-The ingestion service provides the data source for the feature extraction and model training pipeline.
+The ingestion service provides the data source for the feature extraction and model training pipeline, orchestrated by Argo Workflows every 2 minutes with parallel model training.

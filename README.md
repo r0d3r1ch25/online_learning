@@ -295,7 +295,7 @@ pytest pipelines/ingestion_service/tests/ -v
 pytest pipelines/feature_service/tests/ -v
 pytest pipelines/model_service/tests/ -v
 
-# Start CronWorkflow (runs every minute)
+# Start CronWorkflow (runs every 2 minutes)
 make argo-e2e
 
 # Run unit tests for e2e job

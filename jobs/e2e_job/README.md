@@ -1,14 +1,14 @@
 # E2E Job
 
-End-to-end pipeline job for Argo Workflows that orchestrates the complete ML pipeline.
+End-to-end pipeline job for Argo Workflows that orchestrates the complete ML pipeline every 2 minutes with parallel model training.
 
 ## Overview
 
 This job runs the complete online learning pipeline:
 1. Fetches observations from ingestion service
-2. Extracts features from feature service  
-3. Performs model prediction and learning
-4. Retrieves updated model metrics
+2. Extracts features from feature service (15 lag features)
+3. Performs parallel model prediction and learning (Linear, Ridge, KNN)
+4. Retrieves updated model metrics from all models
 
 ## Features
 
@@ -45,7 +45,7 @@ Hardcoded for Kubernetes service discovery:
 ### Configuration
 
 - **Timeout**: 10 seconds for all HTTP requests
-- **Series ID**: `argo_e2e_pipeline` for identification
+- **Series ID**: `features_pipeline` for identification
 - **Error Handling**: Proper exit codes for Argo Workflows
 
 ## Usage
@@ -78,12 +78,12 @@ argo logs -n argo -f online-learning-cron-v1-<timestamp>
 ```
 2024-01-15 10:30:00: === E2E PIPELINE START ===
 2024-01-15 10:30:00: [1/4] SUCCESS: Observation 1: target=112, remaining=143
-2024-01-15 10:30:00: [2/4] SUCCESS: Features extracted: 12 inputs, 0 lags available
+2024-01-15 10:30:00: [2/4] SUCCESS: Features extracted: 15 inputs, 0 lags available
 2024-01-15 10:30:00:   Feature breakdown:
 2024-01-15 10:30:00:     in_1: 0.0
 2024-01-15 10:30:00:     in_2: 0.0
 2024-01-15 10:30:00:     ...
-2024-01-15 10:30:00:     in_12: 0.0
+2024-01-15 10:30:00:     in_15: 0.0
 2024-01-15 10:30:00: [3/4] SUCCESS: Model prediction: 0.0000
 2024-01-15 10:30:00:   Actual: 112 | Prediction: 0.0000 | Error: 112.0000
 2024-01-15 10:30:00: [4/4] SUCCESS: Updated metrics: MAE=112.0000, RMSE=112.0000, Count=1
@@ -196,7 +196,7 @@ metadata:
   name: online-learning-cron-v1
   namespace: argo
 spec:
-  schedule: "* * * * *"  # Every minute
+  schedule: "*/2 * * * *"  # Every 2 minutes
   workflowSpec:
     templates:
     - name: e2e-pipeline
