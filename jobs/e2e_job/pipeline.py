@@ -107,20 +107,26 @@ async def main():
             log(f"    {key}: {features.get(key, 0.0)}")
         
         log("[3/4] SUCCESS: Model predictions (parallel execution):")
-        log("┌─────────┬─────────────┬─────────┬─────────┬─────────┬─────────┬───────┬─────────┐")
-        log("│ Model   │ Prediction  │   MAE   │  RMSE   │  MAPE   │  Count  │ Error │  Time   │")
-        log("├─────────┼─────────────┼─────────┼─────────┼─────────┼─────────┼───────┼─────────┤")
         
-        for result in model_results:
-            if "error" in result:
-                log(f"│ {result['model']:<7} │ ERROR       │    -    │    -    │    -    │    -    │   -   │ {result['duration']:>6.3f}s │")
-            else:
-                pred = result["prediction"]
-                error = target - pred
-                m = result["metrics"]
-                log(f"│ {result['model']:<7} │ {pred:>10.4f}  │ {m.get('mae', 0):>6.2f}  │ {m.get('rmse', 0):>6.2f}  │ {m.get('mape', 0):>6.2f}  │ {m.get('count', 0):>6}  │ {error:>5.2f} │ {result['duration']:>6.3f}s │")
+        # Column-by-column approach for better readability
+        metrics_columns = [
+            ("Model", lambda r: r['model']),
+            ("Prediction", lambda r: f"{r['prediction']:.4f}" if 'prediction' in r else "ERROR"),
+            ("MAE", lambda r: f"{r['metrics'].get('mae', 0):.2f}" if 'metrics' in r else "-"),
+            ("RMSE", lambda r: f"{r['metrics'].get('rmse', 0):.2f}" if 'metrics' in r else "-"),
+            ("MAPE", lambda r: f"{r['metrics'].get('mape', 0):.2f}" if 'metrics' in r else "-"),
+            ("Count", lambda r: str(r['metrics'].get('count', 0)) if 'metrics' in r else "-"),
+            ("Error", lambda r: f"{target - r['prediction']:.2f}" if 'prediction' in r else "-"),
+            ("Time", lambda r: f"{r['duration']:.3f}s")
+        ]
         
-        log("└─────────┴─────────────┴─────────┴─────────┴─────────┴─────────┴───────┴─────────┘")
+        for col_name, col_func in metrics_columns:
+            values = []
+            for result in model_results:
+                value = col_func(result)
+                values.append(f"{result['model']}: {value}")
+            log(f"  {col_name:<10}: {' | '.join(values)}")
+        log("")
         log(f"[4/4] SUCCESS: All models trained in parallel")
         log(f"=== E2E PIPELINE COMPLETE: {end_time} | Duration: {duration:.3f}s ===")
         
