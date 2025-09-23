@@ -18,7 +18,8 @@ FEATURE_URL = "http://feature-service.ml-services.svc.cluster.local:8001"
 MODEL_SERVICES = [
     {"name": "Linear", "url": "http://model-service-linear.ml-services.svc.cluster.local:8010"},
     {"name": "Ridge", "url": "http://model-service-ridge.ml-services.svc.cluster.local:8011"},
-    {"name": "KNN", "url": "http://model-service-knn.ml-services.svc.cluster.local:8012"}
+    {"name": "KNN", "url": "http://model-service-knn.ml-services.svc.cluster.local:8012"},
+    {"name": "AMFR", "url": "http://model-service-amfr.ml-services.svc.cluster.local:8013"}
 ]
 
 def log(message):

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: model-service-amfr
+  labels:
+    app: model-service-amfr
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8013
+    targetPort: 8000
+  selector:
+    app: model-service-amfr

@@ -10,6 +10,7 @@ resources:
   - deployments/model-service-linear.yaml
   - deployments/model-service-ridge.yaml
   - deployments/model-service-knn.yaml
+  - deployments/model-service-amfr.yaml
   - deployments/coinbase-deployment.yaml
   - deployments/redis-deployment.yaml
   - services/ingestion-service.yaml
@@ -17,6 +18,7 @@ resources:
   - services/model-service-linear.yaml
   - services/model-service-ridge.yaml
   - services/model-service-knn.yaml
+  - services/model-service-amfr.yaml
   - services/coinbase-service.yaml
   - services/redis-service.yaml
 

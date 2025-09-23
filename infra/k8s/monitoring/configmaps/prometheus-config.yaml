@@ -33,3 +33,10 @@ data:
         metrics_path: '/metrics'
         scrape_interval: 60s
         scrape_timeout: 10s
+
+      - job_name: 'ml-model-amfr'
+        static_configs:
+          - targets: ['model-service-amfr.ml-services.svc.cluster.local:8013']
+        metrics_path: '/metrics'
+        scrape_interval: 60s
+        scrape_timeout: 10s

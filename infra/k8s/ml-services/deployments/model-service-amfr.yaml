@@ -1,35 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: feature-service
+  name: model-service-amfr
   labels:
-    app: feature-service
+    app: model-service-amfr
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: feature-service
+      app: model-service-amfr
   template:
     metadata:
       labels:
-        app: feature-service
+        app: model-service-amfr
     spec:
       containers:
-      - name: feature-service
-        image: r0d3r1ch25/ml-features:latest
+      - name: model-service-amfr
+        image: r0d3r1ch25/ml-model:latest
         ports:
-        - containerPort: 8001
+        - containerPort: 8000
         env:
+        - name: MODEL_NAME
+          value: "amf_regressor"
         - name: HOST
           value: "0.0.0.0"
         - name: PORT
-          value: "8001"
-        - name: N_LAGS
-          value: "30"
-        - name: REDIS_HOST
-          value: "redis.ml-services.svc.cluster.local"
-        - name: REDIS_PORT
-          value: "6379"
+          value: "8000"
         resources:
           requests:
             memory: "256Mi"
@@ -40,12 +36,12 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8001
+            port: 8000
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
           httpGet:
             path: /health
-            port: 8001
+            port: 8000
           initialDelaySeconds: 5
           periodSeconds: 30

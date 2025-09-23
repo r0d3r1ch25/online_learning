@@ -12,6 +12,7 @@ The platform consists of multiple microservices deployed on a k3d Kubernetes clu
   - **Linear Regression** (Port 8010)
   - **Ridge Regression** (Port 8011) 
   - **KNN Regressor** (Port 8012)
+  - **AMF Regressor** (Port 8013)
 - **Coinbase Service** (Port 8003): Cryptocurrency data streaming
 - **Redis** (Port 6379): Persistent storage for lag features
 
@@ -113,6 +114,7 @@ online_learning/
 - **model-service-linear**: Linear regression model API (Port 8010)
 - **model-service-ridge**: Ridge regression model API (Port 8011)
 - **model-service-knn**: KNN regressor model API (Port 8012)
+- **model-service-amfr**: AMF regressor model API (Port 8013)
 - **coinbase-service**: Cryptocurrency data streaming API (Port 8003)
 - **redis**: Persistent storage for lag features (Port 6379)
 
@@ -267,7 +269,7 @@ curl http://<your-ip>:8010/metrics
 
 **Key Features:**
 - **Feature Agnostic**: Accepts any number of input features dynamically
-- **Configurable Lags**: N_LAGS environment variable controls feature service output (set in deployment YAML: 15)
+- **Configurable Lags**: N_LAGS environment variable controls feature service output (set in deployment YAML: 30)
 - **Persistent Storage**: Redis FIFO lists store lag features, survives pod restarts
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
 - **Independent Scaling**: Each model can scale separately
@@ -394,7 +396,7 @@ Each service has automated GitHub Actions that trigger on:
 The number of lag features can be configured via environment variable:
 
 ```bash
-# Change number of lag features (default: 15)
+# Change number of lag features (default: 30)
 export N_LAGS=8  # Creates in_1 to in_8
 
 # Feature service will generate: in_1, in_2, ..., in_8
@@ -406,6 +408,7 @@ Models are configured via environment variables in Kubernetes deployments:
 - **Linear**: `MODEL_NAME=linear_regression`
 - **Ridge**: `MODEL_NAME=ridge_regression` 
 - **KNN**: `MODEL_NAME=knn_regressor`
+- **AMFR**: `MODEL_NAME=amf_regressor`
 
 ### Redis Configuration
 Feature service uses Redis for persistent lag feature storage:
@@ -432,6 +435,7 @@ curl http://<your-ip>:8003/health  # Coinbase service
 curl http://<your-ip>:8010/health  # Linear model
 curl http://<your-ip>:8011/health  # Ridge model
 curl http://<your-ip>:8012/health  # KNN model
+curl http://<your-ip>:8013/health  # AMFR model
 ```
 
 ### Logs and Monitoring
