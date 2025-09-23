@@ -14,7 +14,8 @@ spec:
     - name: e2e-pipeline
       container:
         image: r0d3r1ch25/ml-e2e-job:latest
-        command: ["python", "pipeline_v2.py"]
+        imagePullPolicy: Always
+        command: ["python", "pipeline.py"]
         resources:
           requests:
             memory: "128Mi"

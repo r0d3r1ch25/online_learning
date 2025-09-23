@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
 End-to-end ML pipeline for Argo Workflows.
-Runs ingestion -> features -> model prediction/learning workflow.
+Runs ingestion -> features -> 3 models in parallel with asyncio.
 """
 
-import requests
+import asyncio
+import aiohttp
 import json
 import datetime
 import sys
@@ -13,48 +14,89 @@ import os
 # Service URLs
 INGESTION_URL = "http://ingestion-service.ml-services.svc.cluster.local:8002"
 FEATURE_URL = "http://feature-service.ml-services.svc.cluster.local:8001"
-MODEL_URL = "http://model-service-linear.ml-services.svc.cluster.local:8010"
+
+MODEL_SERVICES = [
+    {"name": "Linear", "url": "http://model-service-linear.ml-services.svc.cluster.local:8010"},
+    {"name": "Ridge", "url": "http://model-service-ridge.ml-services.svc.cluster.local:8011"},
+    {"name": "Neural", "url": "http://model-service-neural.ml-services.svc.cluster.local:8012"}
+]
 
 def log(message):
     """Log with timestamp and flush immediately"""
     print(f"{datetime.datetime.now()}: {message}", flush=True)
 
-def main():
+async def call_model_service(session, model_info, features, target):
+    """Call a single model service for predict_learn and get metrics"""
+    model_start = datetime.datetime.now()
+    try:
+        # Predict and learn
+        async with session.post(
+            f"{model_info['url']}/predict_learn",
+            json={"features": features, "target": target},
+            timeout=10
+        ) as response:
+            response.raise_for_status()
+            predict_result = await response.json()
+        
+        # Get metrics
+        async with session.get(f"{model_info['url']}/model_metrics", timeout=10) as response:
+            response.raise_for_status()
+            metrics = await response.json()
+        
+        model_end = datetime.datetime.now()
+        model_duration = (model_end - model_start).total_seconds()
+        
+        return {
+            "model": model_info["name"],
+            "prediction": predict_result["prediction"],
+            "metrics": metrics.get("default", {}),
+            "duration": model_duration
+        }
+    except Exception as e:
+        model_end = datetime.datetime.now()
+        model_duration = (model_end - model_start).total_seconds()
+        return {
+            "model": model_info["name"],
+            "error": str(e),
+            "duration": model_duration
+        }
+
+async def main():
     start_time = datetime.datetime.now()
     
     try:
-        # Step 1: Get observation from ingestion service
-        response = requests.get(f"{INGESTION_URL}/next", timeout=10)
-        
-        if response.status_code == 204:
-            log("INFO: No more observations available - stream exhausted")
-            sys.exit(0)
-        
-        response.raise_for_status()
-        observation = response.json()
-        target = observation['target']
-        
-        # Step 2: Extract features
-        response = requests.post(f"{FEATURE_URL}/add", json={"series_id": "argo_e2e_pipeline", "value": target}, timeout=10)
-        response.raise_for_status()
-        feature_result = response.json()
-        
-        # Step 3: Model prediction and learning
-        response = requests.post(f"{MODEL_URL}/predict_learn", json={"features": feature_result['features'], "target": feature_result['target']}, timeout=10)
-        response.raise_for_status()
-        model_result = response.json()
-        
-        # Step 4: Get updated metrics
-        response = requests.get(f"{MODEL_URL}/model_metrics", timeout=10)
-        response.raise_for_status()
-        metrics = response.json()
+        async with aiohttp.ClientSession() as session:
+            # Step 1: Get observation from ingestion service
+            async with session.get(f"{INGESTION_URL}/next", timeout=10) as response:
+                if response.status == 204:
+                    log("INFO: No more observations available - stream exhausted")
+                    sys.exit(0)
+                response.raise_for_status()
+                observation = await response.json()
+                target = observation['target']
+            
+            # Step 2: Extract features
+            async with session.post(
+                f"{FEATURE_URL}/add",
+                json={"series_id": "argo_e2e_pipeline", "value": target},
+                timeout=10
+            ) as response:
+                response.raise_for_status()
+                feature_result = await response.json()
+            
+            # Step 3: Call all 3 models in parallel
+            tasks = [
+                call_model_service(session, model_info, feature_result['features'], feature_result['target'])
+                for model_info in MODEL_SERVICES
+            ]
+            model_results = await asyncio.gather(*tasks)
         
         # All HTTP calls complete - now log everything
         end_time = datetime.datetime.now()
         duration = (end_time - start_time).total_seconds()
         
         log("=== E2E PIPELINE START ===")
-        log(f"[1/4] SUCCESS: Observation {observation.get('observation_id', 'N/A')}: target={target}, remaining={observation.get('remaining', 'N/A')}")
+        log(f"[1/4] SUCCESS: Ingestion - {observation}")
         
         features = feature_result['features']
         log(f"[2/4] SUCCESS: Features extracted: {len(features)} inputs, {feature_result.get('available_lags', 0)} lags available")
@@ -64,23 +106,27 @@ def main():
             key = f"in_{i}"
             log(f"    {key}: {features.get(key, 0.0)}")
         
-        prediction = model_result['prediction']
-        error = target - prediction
-        log(f"[3/4] SUCCESS: Model prediction: {prediction:.4f}")
-        log(f"  Actual: {target} | Prediction: {prediction:.4f} | Error: {error:.4f}")
+        log("[3/4] SUCCESS: Model predictions (parallel execution):")
+        log("┌─────────┬─────────────┬─────────┬─────────┬─────────┬─────────┬───────┬─────────┐")
+        log("│ Model   │ Prediction  │   MAE   │  RMSE   │  MAPE   │  Count  │ Error │  Time   │")
+        log("├─────────┼─────────────┼─────────┼─────────┼─────────┼─────────┼───────┼─────────┤")
         
-        if 'default' in metrics:
-            m = metrics['default']
-            log(f"[4/4] SUCCESS: Updated metrics: MAE={m.get('mae', 0):.4f}, RMSE={m.get('rmse', 0):.4f}, Count={m.get('count', 0)}")
+        for result in model_results:
+            if "error" in result:
+                log(f"│ {result['model']:<7} │ ERROR       │    -    │    -    │    -    │    -    │   -   │ {result['duration']:>6.3f}s │")
+            else:
+                pred = result["prediction"]
+                error = target - pred
+                m = result["metrics"]
+                log(f"│ {result['model']:<7} │ {pred:>10.4f}  │ {m.get('mae', 0):>6.2f}  │ {m.get('rmse', 0):>6.2f}  │ {m.get('mape', 0):>6.2f}  │ {m.get('count', 0):>6}  │ {error:>5.2f} │ {result['duration']:>6.3f}s │")
         
+        log("└─────────┴─────────────┴─────────┴─────────┴─────────┴─────────┴───────┴─────────┘")
+        log(f"[4/4] SUCCESS: All models trained in parallel")
         log(f"=== E2E PIPELINE COMPLETE: {end_time} | Duration: {duration:.3f}s ===")
         
-    except requests.exceptions.RequestException as e:
-        log(f"ERROR: HTTP request failed: {e}")
-        sys.exit(1)
     except Exception as e:
-        log(f"ERROR: Unexpected error: {e}")
+        log(f"ERROR: Pipeline failed: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

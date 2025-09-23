@@ -25,6 +25,6 @@ cluster-down:
 apply:
 	kubectl apply -k infra/k8s/
 
-# Start CronWorkflow v2 (all 3 models)
+# Start CronWorkflow (all 3 models in parallel)
 argo-e2e:
 	kubectl apply -f infra/workflows/v1/online-learning-pipeline-v1.yaml
