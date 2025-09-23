@@ -78,7 +78,7 @@ async def main():
             # Step 2: Extract features
             async with session.post(
                 f"{FEATURE_URL}/add",
-                json={"series_id": "argo_e2e_pipeline", "value": target},
+                json={"series_id": "features_pipeline", "value": target},
                 timeout=10
             ) as response:
                 response.raise_for_status()

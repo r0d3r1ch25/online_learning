@@ -13,6 +13,7 @@ The platform consists of multiple microservices deployed on a k3d Kubernetes clu
   - **Ridge Regression** (Port 8011) 
   - **KNN Regressor** (Port 8012)
 - **Coinbase Service** (Port 8003): Cryptocurrency data streaming
+- **Redis** (Port 6379): Persistent storage for lag features
 
 ## Project Structure
 
@@ -76,7 +77,7 @@ online_learning/
 ├── infra/                     # Infrastructure as Code
 │   ├── k8s/                  # Kubernetes manifests
 │   │   ├── ml-services/      # ML microservices deployment
-│   │   │   ├── deployments/  # Deployment manifests
+│   │   │   ├── deployments/  # Deployment manifests (including Redis)
 │   │   │   ├── services/     # Service manifests
 │   │   │   ├── kustomization.yaml
 │   │   │   └── namespace.yaml
@@ -91,12 +92,11 @@ online_learning/
 │   │   │   ├── kustomization.yaml
 │   │   │   ├── namespace.yaml
 │   │   │   └── rbac.yaml
+│   │   ├── feast/            # Feast feature store (disabled)
 │   │   └── kustomization.yaml # Root kustomization
 │   ├── workflows/            # Argo workflow definitions
-│   │   ├── v0/               # CronWorkflow (inline script)
-│   │   │   └── online-learning-pipeline.yaml
-│   │   └── v1/               # CronWorkflow (baked image)
-│   │       └── online-learning-pipeline-v1.yaml
+│   │   └── v1/               # Active CronWorkflow (ml-cron-v1)
+│   │       └── ml-pipeline-v1.yaml
 │   └── test_pipeline.sh      # Manual pipeline testing script
 ├── .gitignore                # Git ignore rules
 ├── Makefile                  # Infrastructure automation
@@ -157,18 +157,14 @@ Once deployed, access services via LoadBalancer:
 ### 3. Run Online Learning Pipeline
 
 ```bash
-# Start v1 workflow (linear model only, every minute)
+# Start workflow (all 3 models in parallel, every minute)
 make argo-e2e
-
-# Start v2 workflow (all 3 models, every minute)
-kubectl apply -f infra/workflows/v2/online-learning-pipeline-v2.yaml
 
 # Monitor workflows
 argo list -n argo
 
-# Stop workflows
-kubectl delete cronworkflow online-learning-cron-v1 -n argo
-kubectl delete cronworkflow online-learning-cron-v2 -n argo
+# Stop workflow
+kubectl delete cronworkflow ml-cron-v1 -n argo
 
 # Monitor in Argo UI
 open https://<your-ip>:2746
@@ -271,7 +267,7 @@ curl http://<your-ip>:8010/metrics
 
 **Key Features:**
 - **Feature Agnostic**: Accepts any number of input features dynamically
-- **Configurable Lags**: N_LAGS environment variable controls feature service output (default: 12)
+- **Configurable Lags**: N_LAGS environment variable controls feature service output (default: 13)
 - **Persistent Storage**: Redis FIFO lists store lag features, survives pod restarts
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
 - **Independent Scaling**: Each model can scale separately
@@ -396,7 +392,7 @@ Each service has automated GitHub Actions that trigger on:
 The number of lag features can be configured via environment variable:
 
 ```bash
-# Change number of lag features (default: 12)
+# Change number of lag features (default: 13)
 export N_LAGS=8  # Creates in_1 to in_8
 
 # Feature service will generate: in_1, in_2, ..., in_8
@@ -453,6 +449,10 @@ kubectl logs -n ml-services deployment/feature-service | grep REDIS
 # REDIS UNAVAILABLE: Using in-memory storage
 # REDIS: Added observation (persistent storage)
 # MEMORY: Added observation (temporary storage)
+
+# Check Redis data directly
+kubectl exec -n ml-services deployment/redis -- redis-cli KEYS "series:*:values"
+kubectl exec -n ml-services deployment/redis -- redis-cli LRANGE "series:features_pipeline:values" 0 -1
 ```
 
 ## Service Documentation
@@ -460,7 +460,7 @@ kubectl logs -n ml-services deployment/feature-service | grep REDIS
 Each microservice has detailed documentation in its respective directory:
 
 - **[Ingestion Service](pipelines/ingestion_service/README.md)**: Time series data streaming API with sequential observation delivery
-- **[Feature Service](pipelines/feature_service/README.md)**: Lag feature calculation with model-ready output format (in_1 to in_12)
+- **[Feature Service](pipelines/feature_service/README.md)**: Lag feature calculation with model-ready output format (in_1 to in_13)
 - **[Model Service](pipelines/model_service/README.md)**: Feature-agnostic online ML service with multiple regression models
 - **[E2E Job](jobs/e2e_job/README.md)**: End-to-end pipeline orchestration job for Argo Workflows
 
@@ -518,33 +518,64 @@ All images use non-root users for security and are automatically built and pushe
 **Microservices (All Deployed)**
 - ✅ Ingestion Service: Streaming time series data (Port 8002)
 - ✅ Feature Service: Lag feature extraction with Redis persistence (Port 8001) 
-- ✅ Model Services: Online ML with River (Ports 8010, 8011, 8012)
-- ✅ Redis: Persistent storage for lag features (Port 6379)
+- ✅ Model Services: Online ML with River (Linear, Ridge, KNN - Ports 8010, 8011, 8012)
+- ✅ Coinbase Service: Cryptocurrency data streaming (Port 8003)
+- ✅ Redis: Persistent FIFO storage for lag features (Port 6379)
 
 **Infrastructure (Kubernetes Ready)**
 - ✅ k3d cluster with LoadBalancer support
 - ✅ 3 namespaces: ml-services, argo, monitoring
 - ✅ All services accessible via LoadBalancer
 - ✅ Health checks and resource limits configured
+- ✅ Redis integration with automatic fallback to in-memory
 
 **CI/CD Pipeline (Automated)**
 - ✅ GitHub Actions for all services + e2e job
-- ✅ Automated testing with pytest
+- ✅ Automated testing with pytest (Redis mocking)
 - ✅ Docker build/push to Docker Hub
 - ✅ Manual and path-based triggers
+- ✅ Non-root container security
 
 **Workflow Orchestration**
 - ✅ Argo Workflows installed and configured
-- ✅ CronWorkflow v1 with containerized job (runs every minute)
+- ✅ CronWorkflow (ml-cron-v1) with parallel model training
+- ✅ Async pipeline with aiohttp for concurrent model calls
 - ✅ Workflow management UI accessible
 - ✅ Manual testing script available
 
 **Monitoring & Observability**
 - ✅ Grafana + Loki + Promtail + Prometheus stack
 - ✅ Log aggregation from all services
-- ✅ ML model metrics collection and monitoring
+- ✅ ML model metrics collection (MAE, RMSE, MAPE)
+- ✅ Redis connection monitoring via logs
 - ✅ Pre-configured data sources in Grafana
 - ✅ Dashboard accessible via LoadBalancer
+
+### ❌ Missing Features
+
+**Advanced ML Features**
+- ❌ Model versioning and A/B testing
+- ❌ Hyperparameter optimization
+- ❌ Model drift detection
+- ❌ Feature importance tracking
+
+**Production Readiness**
+- ❌ SSL/TLS encryption
+- ❌ Authentication and authorization
+- ❌ Resource quotas and limits
+- ❌ Backup and disaster recovery
+- ❌ Multi-environment support (dev/staging/prod)
+
+**Data Management**
+- ❌ Data validation and quality checks
+- ❌ Feature store with versioning
+- ❌ Data lineage tracking
+- ❌ Batch data ingestion
+
+### ⚠️ Deprecated/Unused Components
+
+- ⚠️ Feast feature store (disabled, replaced by Redis)
+- ⚠️ Neural network model (replaced by KNN regressor)
 
 
 
@@ -602,7 +633,7 @@ curl http://<your-ip>:8001/health
 Get service and series information.
 ```bash
 curl http://<your-ip>:8001/info
-# Returns: {"service": "feature_service", "max_lags": 12, "output_format": "model_ready_in_1_to_in_12", "series_info": {}}
+# Returns: {"service": "feature_service", "max_lags": 13, "output_format": "model_ready_in_1_to_in_13", "series_info": {}}
 ```
 
 #### `POST /add`

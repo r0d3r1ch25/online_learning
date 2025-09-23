@@ -1,10 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:
-  name: online-learning-cron-v1
+  name: ml-cron-v1
   namespace: argo
 spec:
-  schedule: "* * * * *"  # Every minute (standard 5-field cron format)
+  schedule: "*/2 * * * *"  # Every 2 minutes (standard 5-field cron format)
   timezone: "UTC"
   successfulJobsHistoryLimit: 25  # Keep last 25 successful workflows
   failedJobsHistoryLimit: 5       # Keep last 5 failed workflows

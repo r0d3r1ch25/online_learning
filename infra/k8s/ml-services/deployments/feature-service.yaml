@@ -25,7 +25,7 @@ spec:
         - name: PORT
           value: "8001"
         - name: N_LAGS
-          value: "12"
+          value: "13"
         - name: REDIS_HOST
           value: "redis.ml-services.svc.cluster.local"
         - name: REDIS_PORT
@@ -42,10 +42,10 @@ spec:
             path: /health
             port: 8001
           initialDelaySeconds: 30
-          periodSeconds: 60
+          periodSeconds: 30
         readinessProbe:
           httpGet:
             path: /health
             port: 8001
           initialDelaySeconds: 5
-          periodSeconds: 60
+          periodSeconds: 30

@@ -27,4 +27,4 @@ apply:
 
 # Start CronWorkflow (all 3 models in parallel)
 argo-e2e:
-	kubectl apply -f infra/workflows/v1/online-learning-pipeline-v1.yaml
+	kubectl apply -f infra/workflows/v1/ml-pipeline-v1.yaml

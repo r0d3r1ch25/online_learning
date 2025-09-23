@@ -17,19 +17,19 @@ data:
         static_configs:
           - targets: ['model-service-linear.ml-services.svc.cluster.local:8010']
         metrics_path: '/metrics'
-        scrape_interval: 30s
+        scrape_interval: 60s
         scrape_timeout: 10s
 
       - job_name: 'ml-model-ridge'
         static_configs:
           - targets: ['model-service-ridge.ml-services.svc.cluster.local:8011']
         metrics_path: '/metrics'
-        scrape_interval: 30s
+        scrape_interval: 60s
         scrape_timeout: 10s
 
       - job_name: 'ml-model-knn'
         static_configs:
           - targets: ['model-service-knn.ml-services.svc.cluster.local:8012']
         metrics_path: '/metrics'
-        scrape_interval: 30s
+        scrape_interval: 60s
         scrape_timeout: 10s
