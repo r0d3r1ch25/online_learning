@@ -70,10 +70,9 @@ spec:
         args:
         - |
           echo "Processing features..."
-          echo '{{inputs.parameters.observation}}' | \
-          jq '{series_id: "pipeline_v2", value: .target}' | \
+          TARGET=$(echo '{{inputs.parameters.observation}}' | grep -o '"target":[^,}]*' | cut -d':' -f2)
           curl -s -X POST -H "Content-Type: application/json" \
-            --data-binary @- \
+            -d "{\"series_id\": \"pipeline_v2\", \"value\": $TARGET}" \
             http://feature-service.ml-services.svc.cluster.local:8001/add
 
     - name: train-model
@@ -88,8 +87,6 @@ spec:
         args:
         - |
           echo "Training {{inputs.parameters.model-service}} model..."
-          echo '{{inputs.parameters.features}}' | \
-          jq '{features: .features, target: .target}' | \
           curl -s -X POST -H "Content-Type: application/json" \
-            --data-binary @- \
+            -d '{{inputs.parameters.features}}' \
             http://{{inputs.parameters.model-service}}.ml-services.svc.cluster.local:{{inputs.parameters.model-port}}/predict_learn
