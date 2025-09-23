@@ -13,9 +13,23 @@ data:
         static_configs:
           - targets: ['localhost:9090']
 
-      - job_name: 'ml-model-service'
+      - job_name: 'ml-model-linear'
         static_configs:
-          - targets: ['model-service.ml-services.svc.cluster.local:8000']
+          - targets: ['model-service-linear.ml-services.svc.cluster.local:8010']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+        scrape_timeout: 10s
+
+      - job_name: 'ml-model-ridge'
+        static_configs:
+          - targets: ['model-service-ridge.ml-services.svc.cluster.local:8011']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+        scrape_timeout: 10s
+
+      - job_name: 'ml-model-neural'
+        static_configs:
+          - targets: ['model-service-neural.ml-services.svc.cluster.local:8012']
         metrics_path: '/metrics'
         scrape_interval: 30s
         scrape_timeout: 10s
