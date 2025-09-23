@@ -157,7 +157,7 @@ Once deployed, access services via LoadBalancer:
 ### 3. Run Online Learning Pipeline
 
 ```bash
-# Start workflow (all 3 models in parallel, every minute)
+# Start workflow (all 3 models in parallel, every 2 minutes)
 make argo-e2e
 
 # Monitor workflows
@@ -348,6 +348,8 @@ open http://localhost:3000  # admin/admin
 - `{app="model-service"}` - All model service logs
 - `{app="model-service"} |= "WARNING"` - Warning logs only
 - `{namespace="ml-services"}` - All ML services logs
+- `{namespace="argo"}` - All Argo workflow logs
+- `{app=~"ml-cron-v1.*"}` - CronWorkflow execution logs
 
 ## CI/CD Pipeline
 
@@ -383,7 +385,7 @@ Each service has automated GitHub Actions that trigger on:
 1. **Ingestion Service** streams time series observations (date, value pairs)
 2. **Feature Service** calculates lag features with Redis persistence and outputs model-ready format (in_1 to in_{N_LAGS})
 3. **Model Service** performs feature-agnostic online learning with any features provided
-4. **Argo CronWorkflow** orchestrates the end-to-end pipeline every minute
+4. **Argo CronWorkflow** orchestrates the end-to-end pipeline every 2 minutes
 5. **Monitoring Stack** tracks logs and metrics across all services
 
 ## Configuration

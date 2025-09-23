@@ -30,3 +30,19 @@ data:
           - labels:
               app:
           - cri: {}
+      
+      - job_name: argo-pods
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: argo-pods
+              namespace: argo
+              __path__: /var/log/pods/argo_*/*/*.log
+        pipeline_stages:
+          - regex:
+              expression: '/var/log/pods/argo_(?P<app>[a-z0-9-]+)_.*'
+              source: filename
+          - labels:
+              app:
+          - cri: {}
