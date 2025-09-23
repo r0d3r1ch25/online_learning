@@ -16,9 +16,9 @@ def test_info():
     assert response.status_code == 200
     data = response.json()
     assert data["service"] == "feature_service"
-    assert data["max_lags"] == 10  # N_LAGS=10 in CI
+    assert data["max_lags"] == 10  # N_LAGS=10 in CI environment
     assert data["output_format"] == "model_ready_in_1_to_in_10"
-    assert "series_info" in data
+
 
 def test_add_observation():
     payload = {
@@ -69,28 +69,7 @@ def test_add_multiple_observations():
         if i > 2:
             assert features["in_3"] == values[i-3]
 
-def test_get_series_info():
-    # Add some observations first
-    series_id = "info_test"
-    payload = {
-        "series_id": series_id,
-        "value": 200.0
-    }
-    client.post("/add", json=payload)
-    
-    # Get series info
-    response = client.get(f"/series/{series_id}")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["series_id"] == series_id
-    assert "length" in data
-    assert "latest_value" in data
-    assert "available_lags" in data
-    assert data["latest_value"] == 200.0
 
-def test_get_nonexistent_series():
-    response = client.get("/series/nonexistent")
-    assert response.status_code == 404
 
 def test_invalid_payload():
     # Missing required fields
@@ -140,7 +119,7 @@ def test_default_series_id():
     assert data["series_id"] == "default"
 
 def test_feature_format_consistency():
-    """Test that all features follow in_1 to in_10 format"""
+    """Test that all features follow in_1 to in_N_LAGS format (N_LAGS=10 in CI)"""
     payload = {
         "series_id": "format_test",
         "value": 300.0
@@ -150,7 +129,7 @@ def test_feature_format_consistency():
     data = response.json()
     
     features = data["features"]
-    # Should have exactly 10 features (N_LAGS=10 in CI)
+    # Should have exactly 10 features (N_LAGS=10 in CI environment)
     assert len(features) == 10
     
     # Should have in_1 through in_10

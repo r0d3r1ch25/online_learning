@@ -6,7 +6,7 @@ import redis
 
 logger = logging.getLogger(__name__)
 
-# Configuration - N_LAGS must be provided via environment variable
+# N_LAGS configuration - must be set in deployment YAML (currently 15)
 try:
     N_LAGS = int(os.getenv('N_LAGS'))
 except (TypeError, ValueError):
@@ -15,7 +15,10 @@ REDIS_HOST = os.getenv('REDIS_HOST', 'redis.ml-services.svc.cluster.local')
 REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
 
 class LagFeatureManager:
-    """Manages lag feature computation for time series data using Redis FIFO lists."""
+    """Manages lag feature computation for time series data using Redis FIFO lists.
+    
+    Features are output as in_1 to in_{N_LAGS} format for model consumption.
+    """
     
     def __init__(self, max_lags: int = N_LAGS):
         self.max_lags = max_lags
@@ -91,33 +94,3 @@ class LagFeatureManager:
         
         return features
     
-    def get_series_info(self) -> Dict[str, Dict]:
-        """Get information about all series."""
-        info = {}
-        
-        if self.use_redis:
-            try:
-                # Get all series keys from Redis
-                keys = self.redis_client.keys("series:*:values")
-                for key in keys:
-                    series_id = key.split(":")[1]  # Extract series_id from key
-                    values = self.redis_client.lrange(key, 0, -1)
-                    info[series_id] = {
-                        "length": len(values),
-                        "latest_value": float(values[0]) if values else None,
-                        "available_lags": min(len(values), self.max_lags),
-                        "storage": "redis"
-                    }
-            except Exception as e:
-                logger.error(f"Redis error in get_series_info: {e}")
-        
-        # Add in-memory series info
-        for series_id, buffer in self.series_buffers.items():
-            info[series_id] = {
-                "length": len(buffer),
-                "latest_value": buffer[-1] if buffer else None,
-                "available_lags": min(len(buffer), self.max_lags),
-                "storage": "memory"
-            }
-        
-        return info

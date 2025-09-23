@@ -1,5 +1,3 @@
-# ml_api/metrics_manager.py
-
 import math
 from collections import defaultdict
 

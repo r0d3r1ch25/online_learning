@@ -15,28 +15,28 @@ data:
 
       - job_name: 'ml-model-linear'
         static_configs:
-          - targets: ['model-service-linear.ml-services.svc.cluster.local:8010']
+          - targets: ['model-linear.ml-services.svc.cluster.local:8010']
         metrics_path: '/metrics'
         scrape_interval: 60s
         scrape_timeout: 10s
 
       - job_name: 'ml-model-ridge'
         static_configs:
-          - targets: ['model-service-ridge.ml-services.svc.cluster.local:8011']
+          - targets: ['model-ridge.ml-services.svc.cluster.local:8011']
         metrics_path: '/metrics'
         scrape_interval: 60s
         scrape_timeout: 10s
 
       - job_name: 'ml-model-knn'
         static_configs:
-          - targets: ['model-service-knn.ml-services.svc.cluster.local:8012']
+          - targets: ['model-knn.ml-services.svc.cluster.local:8012']
         metrics_path: '/metrics'
         scrape_interval: 60s
         scrape_timeout: 10s
 
       - job_name: 'ml-model-amfr'
         static_configs:
-          - targets: ['model-service-amfr.ml-services.svc.cluster.local:8013']
+          - targets: ['model-amfr.ml-services.svc.cluster.local:8013']
         metrics_path: '/metrics'
         scrape_interval: 60s
         scrape_timeout: 10s

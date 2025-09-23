@@ -1,8 +1,8 @@
 """
 Data Ingestion Service
 
-Provides streaming access to CSV data one observation at a time.
-Maintains state to track current position in the dataset.
+Provides streaming access to time series CSV data (1949-2010) one observation at a time.
+Maintains state to track current position in the 744-observation dataset.
 """
 
 import pandas as pd

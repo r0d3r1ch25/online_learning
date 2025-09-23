@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: model-service-knn
+  name: model-knn
   labels:
-    app: model-service-knn
+    app: model-knn
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 8012
     targetPort: 8000
   selector:
-    app: model-service-knn
+    app: model-knn

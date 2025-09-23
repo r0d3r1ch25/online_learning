@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: model-service-ridge
+  name: model-amfr
   labels:
-    app: model-service-ridge
+    app: model-amfr
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: model-service-ridge
+      app: model-amfr
   template:
     metadata:
       labels:
-        app: model-service-ridge
+        app: model-amfr
     spec:
       containers:
-      - name: model-service-ridge
+      - name: model-amfr
         image: r0d3r1ch25/ml-model:latest
         ports:
         - containerPort: 8000
         env:
         - name: MODEL_NAME
-          value: "ridge_regression"
+          value: "amf_regressor"
         - name: HOST
           value: "0.0.0.0"
         - name: PORT

@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: model-service-knn
+  name: model-knn
   labels:
-    app: model-service-knn
+    app: model-knn
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: model-service-knn
+      app: model-knn
   template:
     metadata:
       labels:
-        app: model-service-knn
+        app: model-knn
     spec:
       containers:
-      - name: model-service-knn
+      - name: model-knn
         image: r0d3r1ch25/ml-model:latest
         ports:
         - containerPort: 8000

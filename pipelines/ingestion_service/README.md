@@ -1,10 +1,10 @@
 # Data Ingestion Service
 
-A streaming service that serves time series CSV data one observation at a time via REST API for online learning workflows. Integrated with Argo CronWorkflow running every 2 minutes.
+A streaming service that serves time series CSV data one observation at a time via REST API for online learning workflows. Integrated with Argo CronWorkflow running every minute.
 
 ## Overview
 
-The ingestion service streams monthly time series data (1949-1960) with date inputs and integer targets. It maintains state to track current position and provides stream management capabilities.
+The ingestion service streams monthly time series data (1949-2010) with date inputs and integer targets. It maintains state to track current position and provides stream management capabilities.
 
 ## Features
 
@@ -71,9 +71,9 @@ Returns current stream status.
 
 ## Dataset
 
-Sample time series data with 144 monthly observations from 1949-1960:
+Sample time series data with 744 monthly observations from 1949-2010:
 - **Input**: Date strings in YYYY-MM format
-- **Target**: Integer values representing time series measurements
+- **Target**: Integer values with W pattern, upward trend, and seasonality
 - **File**: `data.csv` in service directory
 
 ## Usage Example
@@ -84,7 +84,7 @@ curl http://localhost:8002/health
 
 # Get next observation
 curl http://localhost:8002/next
-# Returns: {"observation_id": 1, "input": "1949-01", "target": 112, "remaining": 143}
+# Returns: {"observation_id": 1, "input": "1949-01", "target": 112, "remaining": 743}
 
 # Reset stream
 curl -X POST http://localhost:8002/reset
@@ -99,7 +99,7 @@ curl http://localhost:8002/status
 
 - **`main.py`**: FastAPI application with endpoint definitions
 - **`service.py`**: `DataIngestionService` class with core logic
-- **`data.csv`**: Time series dataset (144 observations)
+- **`data.csv`**: Time series dataset (744 observations)
 
 ### Service Class Methods
 
@@ -175,4 +175,4 @@ curl -s http://localhost:8002/next | \
     --data-binary @- http://localhost:8001/add
 ```
 
-The ingestion service provides the data source for the feature extraction and model training pipeline, orchestrated by Argo Workflows every 2 minutes with parallel model training.
+The ingestion service provides the data source for the feature extraction and model training pipeline, orchestrated by Argo Workflows every minute with parallel model training.

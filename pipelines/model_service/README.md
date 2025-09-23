@@ -9,7 +9,7 @@ The model service provides online learning capabilities with support for multipl
 ## Features
 
 - **Feature Agnostic**: Accepts any number of input features dynamically
-- **Multiple Regression Models**: Linear, Ridge, KNN Regressor
+- **Multiple Regression Models**: Linear, Ridge, KNN, AMF Regressor
 - **Easy Model Switching**: Via MODEL_NAME environment variable
 - **Online Learning**: Real-time predict-then-learn workflow
 - **Single-Step Prediction**: FORECAST_HORIZON=1 for simplified predictions
@@ -27,6 +27,7 @@ Change the model by setting the MODEL_NAME environment variable:
 export MODEL_NAME=linear_regression    # Default - Linear Regression with StandardScaler
 export MODEL_NAME=ridge_regression     # Ridge Regression (L2 regularization)
 export MODEL_NAME=knn_regressor        # KNN Regressor with 5 neighbors
+export MODEL_NAME=amf_regressor        # AMF Regressor (Adaptive Model Forest)
 ```
 
 ## API Endpoints
@@ -53,7 +54,7 @@ Service information including current model configuration.
   "forecast_horizon": 1,
   "feature_agnostic": true,
   "regression_model": true,
-  "available_models": ["linear_regression", "ridge_regression", "knn_regressor"]
+  "available_models": ["linear_regression", "ridge_regression", "knn_regressor", "amf_regressor"]
 }
 ```
 

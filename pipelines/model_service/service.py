@@ -1,4 +1,4 @@
-# ml_api/service.py
+# NOT BEING USED - OLD FILE HEADER COMMENT
 
 import logging
 import os
@@ -48,7 +48,7 @@ def info():
         "forecast_horizon": FORECAST_HORIZON,
         "feature_agnostic": True,
         "regression_model": True,
-        "available_models": ["linear_regression", "ridge_regression", "neural_network"]
+        "available_models": ["linear_regression", "ridge_regression", "knn_regressor", "amf_regressor"]
     }
 
 @app.post("/train")
@@ -73,9 +73,9 @@ def train(request: TrainRequest):
 def predict(request: PredictRequest):
     """Predict using regression model"""
     try:
-        # Get forecast from regression model
-        forecast_values = model_manager.predict_multi_step(request.features)
-        forecast = [{"value": val} for val in forecast_values]
+        # Get single-step forecast from regression model
+        forecast_value = model_manager.predict(request.features)
+        forecast = [{"value": forecast_value}]
         return {"forecast": forecast}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

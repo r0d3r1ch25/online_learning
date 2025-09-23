@@ -1,13 +1,13 @@
 # E2E Job
 
-End-to-end pipeline job for Argo Workflows that orchestrates the complete ML pipeline every 2 minutes with parallel model training.
+End-to-end pipeline job for Argo Workflows that orchestrates the complete ML pipeline every minute with parallel model training.
 
 ## Overview
 
 This job runs the complete online learning pipeline:
 1. Fetches observations from ingestion service
-2. Extracts features from feature service (15 lag features)
-3. Performs parallel model prediction and learning (Linear, Ridge, KNN)
+2. Extracts features from feature service (configurable lag features via N_LAGS)
+3. Performs parallel model prediction and learning (Linear, Ridge, KNN, AMFR)
 4. Retrieves updated model metrics from all models
 
 ## Features
@@ -196,7 +196,7 @@ metadata:
   name: online-learning-cron-v1
   namespace: argo
 spec:
-  schedule: "*/2 * * * *"  # Every 2 minutes
+  schedule: "* * * * *"  # Every minute
   workflowSpec:
     templates:
     - name: e2e-pipeline
@@ -214,7 +214,7 @@ spec:
 ### Workflow Management
 ```bash
 # Start CronWorkflow
-make argo-e2e
+make cron
 
 # Monitor workflows
 argo list -n argo

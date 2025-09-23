@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: model-service-linear
+  name: model-linear
   labels:
-    app: model-service-linear
+    app: model-linear
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 8010
     targetPort: 8000
   selector:
-    app: model-service-linear
+    app: model-linear

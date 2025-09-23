@@ -37,7 +37,7 @@ def test_extract_features():
     # Extract features with new value (115.0 becomes target, not feature)
     features = manager.extract_features("test_series", 115.0)
     
-    # Should return in_1 to in_10 format (N_LAGS=10 in CI)
+    # Should return in_1 to in_10 format (N_LAGS=10 in CI environment)
     assert "in_1" in features
     assert "in_2" in features
     assert "in_10" in features
@@ -60,7 +60,7 @@ def test_extract_features_empty_series():
     # Extract features for new series (no previous observations)
     features = manager.extract_features("new_series", 50.0)
     
-    # Should have in_1 to in_10 (N_LAGS=10 in CI)
+    # Should have in_1 to in_10 features (N_LAGS=10 in CI environment)
     assert len(features) == 10
     
     # All lags should be 0.0 since no previous observations
@@ -77,24 +77,6 @@ def test_max_lags_limit():
     for i in range(15):
         manager.add_observation("test_series", i)
     
-    # Buffer should only keep last 10 values (N_LAGS=10 in CI)
+    # Buffer should only keep last 10 values (N_LAGS=10 in CI environment)
     assert len(manager.series_buffers["test_series"]) == 10
 
-def test_get_series_info():
-    """Test getting series information."""
-    with patch('redis.Redis') as mock_redis:
-        mock_redis.side_effect = Exception("Redis unavailable")
-        manager = LagFeatureManager()  # Uses N_LAGS from environment
-    
-    manager.add_observation("series1", 100)
-    manager.add_observation("series1", 105)
-    manager.add_observation("series2", 200)
-    
-    info = manager.get_series_info()
-    
-    assert "series1" in info
-    assert "series2" in info
-    assert info["series1"]["length"] == 2
-    assert info["series1"]["latest_value"] == 105
-    assert info["series2"]["length"] == 1
-    assert info["series2"]["latest_value"] == 200

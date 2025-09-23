@@ -2,7 +2,7 @@
 
 CLUSTER_NAME = ml-cluster
 
-.PHONY: cluster-up cluster-down apply again argo-e2e
+.PHONY: cluster-up cluster-down apply cron
 
 # Cluster management
 cluster-up:
@@ -10,10 +10,6 @@ cluster-up:
 		--port "8001:8001@loadbalancer" \
 		--port "8002:8002@loadbalancer" \
 		--port "8003:8003@loadbalancer" \
-		--port "8010:8010@loadbalancer" \
-		--port "8011:8011@loadbalancer" \
-		--port "8012:8012@loadbalancer" \
-		--port "8013:8013@loadbalancer" \
 		--port "2746:2746@loadbalancer" \
 		--port "3000:3000@loadbalancer" \
 		--port "9090:9090@loadbalancer" \
@@ -26,6 +22,6 @@ cluster-down:
 apply:
 	kubectl apply -k infra/k8s/
 
-# Start CronWorkflow (all 3 models in parallel)
-argo-e2e:
+# Start CronWorkflow (all 4 models in parallel)
+cron:
 	kubectl apply -f infra/workflows/v1/ml-pipeline-v1.yaml

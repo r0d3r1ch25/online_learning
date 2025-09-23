@@ -4,7 +4,7 @@ Lag feature extraction service with Redis persistence for time series data. Calc
 
 ## Overview
 
-The Feature Service processes time series observations and extracts lag features in a format ready for consumption by the Model Service. It maintains internal buffers for each time series and outputs features as `in_1` to `in_12` format.
+The Feature Service processes time series observations and extracts lag features in a format ready for consumption by the Model Service. It maintains internal buffers for each time series and outputs features based on N_LAGS configuration.
 
 ## Key Features
 
@@ -13,7 +13,7 @@ The Feature Service processes time series observations and extracts lag features
 - **Multiple Series Support**: Handles multiple independent time series via series_id
 - **Redis Persistence**: Uses Redis FIFO lists for persistent lag storage with automatic fallback
 - **Zero-Fill**: Missing lags are automatically filled with 0.0
-- **Configurable Lags**: N_LAGS environment variable (must be set in deployment YAML)
+- **Configurable Lags**: N_LAGS environment variable (currently set to 15 in deployment YAML)
 
 ## API Endpoints
 
@@ -98,7 +98,7 @@ The service outputs features in model-ready format:
 - `in_2`: Second most recent previous observation (lag 2)
 - `in_3`: Third most recent previous observation (lag 3)
 - ...
-- `in_12`: Twelfth most recent previous observation (lag 12)
+- `in_{N_LAGS}`: N_LAGS most recent previous observation
 
 Missing lags are filled with `0.0`.
 
@@ -114,12 +114,12 @@ Missing lags are filled with `0.0`.
 
 - **`add_observation()`**: Adds value to series buffer (deque with maxlen)
 - **`extract_features()`**: Extracts lag features then adds current observation
-- **`get_series_info()`**: Returns information about all series
+
 
 ### Configuration
 
 Environment variable:
-- `N_LAGS`: Number of lag features (must be set in deployment YAML, currently: 15)
+- `N_LAGS`: Number of lag features (set in deployment YAML, current value: 15)
 
 ## Usage Examples
 
@@ -292,7 +292,7 @@ Input: Time Series Value
          ↓
    Model-Ready Features
          ↓
-    Output: in_1 to in_12
+    Output: in_1 to in_{N_LAGS}
 ```
 
 The service maintains internal state for each time series to calculate lag features efficiently using Python's deque with maxlen for automatic buffer management.

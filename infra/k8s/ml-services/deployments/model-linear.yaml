@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: model-service-linear
+  name: model-linear
   labels:
-    app: model-service-linear
+    app: model-linear
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: model-service-linear
+      app: model-linear
   template:
     metadata:
       labels:
-        app: model-service-linear
+        app: model-linear
     spec:
       containers:
-      - name: model-service-linear
+      - name: model-linear
         image: r0d3r1ch25/ml-model:latest
         ports:
         - containerPort: 8000

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 End-to-end ML pipeline for Argo Workflows.
-Runs ingestion -> features -> 3 models in parallel with asyncio.
+Runs ingestion -> features -> 4 models in parallel with asyncio.
 """
 
 import asyncio
@@ -16,10 +16,10 @@ INGESTION_URL = "http://ingestion-service.ml-services.svc.cluster.local:8002"
 FEATURE_URL = "http://feature-service.ml-services.svc.cluster.local:8001"
 
 MODEL_SERVICES = [
-    {"name": "Linear", "url": "http://model-service-linear.ml-services.svc.cluster.local:8010"},
-    {"name": "Ridge", "url": "http://model-service-ridge.ml-services.svc.cluster.local:8011"},
-    {"name": "KNN", "url": "http://model-service-knn.ml-services.svc.cluster.local:8012"},
-    {"name": "AMFR", "url": "http://model-service-amfr.ml-services.svc.cluster.local:8013"}
+    {"name": "Linear", "url": "http://model-linear.ml-services.svc.cluster.local:8010"},
+    {"name": "Ridge", "url": "http://model-ridge.ml-services.svc.cluster.local:8011"},
+    {"name": "KNN", "url": "http://model-knn.ml-services.svc.cluster.local:8012"},
+    {"name": "AMFR", "url": "http://model-amfr.ml-services.svc.cluster.local:8013"}
 ]
 
 def log(message):
@@ -85,7 +85,7 @@ async def main():
                 response.raise_for_status()
                 feature_result = await response.json()
             
-            # Step 3: Call all 3 models in parallel
+            # Step 3: Call all 4 models in parallel
             tasks = [
                 call_model_service(session, model_info, feature_result['features'], feature_result['target'])
                 for model_info in MODEL_SERVICES
@@ -102,6 +102,7 @@ async def main():
         features = feature_result['features']
         log(f"[2/4] SUCCESS: Features extracted: {len(features)} inputs, {feature_result.get('available_lags', 0)} lags available")
         log("  Feature breakdown:")
+        # Log all in_X features (X from 1 to N_LAGS)
         num_features = len([k for k in features.keys() if k.startswith('in_')])
         for i in range(1, num_features + 1):
             key = f"in_{i}"
@@ -128,7 +129,7 @@ async def main():
                 values.append(f"{result['model']}: {value}")
             log(f"  {col_name:<10}: {' | '.join(values)}")
         log("")
-        log(f"[4/4] SUCCESS: All models trained in parallel")
+        log(f"[4/4] SUCCESS: All 4 models trained in parallel")
         log(f"=== E2E PIPELINE COMPLETE: {end_time} | Duration: {duration:.3f}s ===")
         
     except Exception as e:
