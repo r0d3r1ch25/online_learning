@@ -19,7 +19,6 @@ USER appuser
 ENV MODEL_NAME=linear_regression
 ENV HOST=0.0.0.0
 ENV PORT=8000
-ENV ROLLING_WINDOW_SIZE=30
 
 EXPOSE 8000
 CMD ["python", "main.py"]

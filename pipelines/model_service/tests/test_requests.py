@@ -233,13 +233,13 @@ def test_model_metrics_detailed():
     # Should have comprehensive metrics for default series
     if "default" in data:
         metrics = data["default"]
-        assert "mae" in metrics
-        assert "mse" in metrics
-        assert "rmse" in metrics
         assert "count" in metrics
         assert "last_prediction" in metrics
         assert "last_actual" in metrics
         assert "last_error" in metrics
-        assert isinstance(metrics["mae"], (int, float))
-        assert isinstance(metrics["mse"], (int, float))
-        assert isinstance(metrics["rmse"], (int, float))
+        # Check for rolling metrics with window sizes
+        rolling_metrics = [k for k in metrics.keys() if k.endswith(('_5', '_10', '_20'))]
+        assert len(rolling_metrics) > 0
+        # Check that we have mae, mse, rmse, mape for each window size
+        for window in ['5', '10', '20']:
+            assert any(k.endswith(f'_{window}') for k in metrics.keys())

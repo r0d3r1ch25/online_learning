@@ -247,7 +247,7 @@ curl -X POST http://localhost:8010/predict_learn \
   -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
 # Returns: {"prediction": 138.7}
 
-# Get model performance metrics (rolling MAE, MSE, RMSE, MAPE over last 30 predictions)
+# Get model performance metrics (rolling MAE, MSE, RMSE, MAPE over multiple window sizes: 5, 10, 20 predictions)
 curl http://localhost:8010/model_metrics
 
 # Get Prometheus-compatible metrics
@@ -266,7 +266,7 @@ curl http://localhost:8010/metrics
 - **Persistent Storage**: Redis FIFO lists store lag features, survives pod restarts
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
 - **Independent Scaling**: Each model can scale separately
-- **Rolling Metrics**: River-based rolling window metrics (MAE, MSE, RMSE, MAPE) over last 30 predictions
+- **Multi-Window Rolling Metrics**: River-based rolling window metrics (MAE, MSE, RMSE, MAPE) over multiple window sizes [5, 10, 20] predictions
 - **Total Count Tracking**: Tracks total number of successful model learning operations (resets on pod restart)
 - **Prometheus Ready**: /metrics endpoint with model labels for monitoring
 
@@ -333,11 +333,11 @@ open http://localhost:3000  # admin/admin
 ```
 
 **Prometheus Queries (Metrics):**
-- `ml_model_mae{model="linear_regression"}` - Linear model MAE
-- `ml_model_mae{model="ridge_regression"}` - Ridge model MAE
-- `ml_model_mae{model="knn_regressor"}` - KNN model MAE
-- `ml_model_rmse{model=~"linear_regression|ridge_regression|knn_regressor"}` - All models RMSE
-- `ml_model_mape{model=~".*"}` - All models MAPE
+- `ml_model_mae_5{model="linear_regression"}` - Linear model MAE over 5 predictions
+- `ml_model_mae_10{model="ridge_regression"}` - Ridge model MAE over 10 predictions
+- `ml_model_mae_20{model="knn_regressor"}` - KNN model MAE over 20 predictions
+- `ml_model_rmse_10{model=~"linear_regression|ridge_regression|knn_regressor"}` - All models RMSE over 10 predictions
+- `ml_model_mape_20{model=~".*"}` - All models MAPE over 20 predictions
 - `ml_model_predictions_total` - Total model learning operations count by model
 
 **Loki Queries (Logs):**

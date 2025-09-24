@@ -1,19 +1,16 @@
-import os
 from collections import defaultdict, deque
 from river import metrics as river_metrics, utils
 
-DEFAULT_WINDOW_SIZE = int(os.getenv("ROLLING_WINDOW_SIZE", "30"))
+ROLLING_WINDOW_SIZES = [5, 10, 20]
 
 class MetricsManager:
-    def __init__(self, window_size=None):
-        self.window_size = window_size or DEFAULT_WINDOW_SIZE
+    def __init__(self):
         self.series_metrics = defaultdict(lambda: {
-            "mae": utils.Rolling(river_metrics.MAE(), window_size=self.window_size),
-            "mse": utils.Rolling(river_metrics.MSE(), window_size=self.window_size),
-            "rmse": utils.Rolling(river_metrics.RMSE(), window_size=self.window_size),
-            "mape": utils.Rolling(river_metrics.MAPE(), window_size=self.window_size)
+            f"{metric}_{size}": utils.Rolling(getattr(river_metrics, metric.upper())(), window_size=size)
+            for metric in ["mae", "mse", "rmse", "mape"]
+            for size in ROLLING_WINDOW_SIZES
         })
-        self.series_history = defaultdict(lambda: deque(maxlen=self.window_size))
+        self.series_history = defaultdict(lambda: deque(maxlen=max(ROLLING_WINDOW_SIZES)))
         self.series_counts = defaultdict(int)
 
     def add(self, series_id, y_true, y_pred):
@@ -44,15 +41,19 @@ class MetricsManager:
             
             last_actual, last_pred, last_error = history[-1]
             
-            metrics[series_id] = {
-                'count': self.series_counts[series_id],
-                'mae': round(self.series_metrics[series_id]["mae"].get() or 0.0, 4),
-                'mse': round(self.series_metrics[series_id]["mse"].get() or 0.0, 4),
-                'rmse': round(self.series_metrics[series_id]["rmse"].get() or 0.0, 4),
-                'mape': round(self.series_metrics[series_id]["mape"].get() or 0.0, 4),
+            series_metrics = {'count': self.series_counts[series_id]}
+            
+            # Add rolling metrics for each window size
+            for metric_name, metric_obj in self.series_metrics[series_id].items():
+                series_metrics[metric_name] = round(metric_obj.get() or 0.0, 4)
+            
+            # Add last prediction details
+            series_metrics.update({
                 'last_prediction': last_pred,
                 'last_actual': last_actual,
                 'last_error': last_error
-            }
+            })
+            
+            metrics[series_id] = series_metrics
         
         return metrics

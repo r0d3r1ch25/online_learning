@@ -149,21 +149,14 @@ def prometheus_metrics():
     
     for series_id, data in metrics_data.items():
         # Model performance metrics
-        prometheus_output.append(f"# HELP ml_model_mae Mean Absolute Error")
-        prometheus_output.append(f"# TYPE ml_model_mae gauge")
-        prometheus_output.append(f'ml_model_mae{{series="{series_id}",model="{model_manager.model_name}"}} {data.get("mae", 0)}')
-        
-        prometheus_output.append(f"# HELP ml_model_mse Mean Squared Error")
-        prometheus_output.append(f"# TYPE ml_model_mse gauge")
-        prometheus_output.append(f'ml_model_mse{{series="{series_id}",model="{model_manager.model_name}"}} {data.get("mse", 0)}')
-        
-        prometheus_output.append(f"# HELP ml_model_rmse Root Mean Squared Error")
-        prometheus_output.append(f"# TYPE ml_model_rmse gauge")
-        prometheus_output.append(f'ml_model_rmse{{series="{series_id}",model="{model_manager.model_name}"}} {data.get("rmse", 0)}')
-        
-        prometheus_output.append(f"# HELP ml_model_mape Mean Absolute Percentage Error")
-        prometheus_output.append(f"# TYPE ml_model_mape gauge")
-        prometheus_output.append(f'ml_model_mape{{series="{series_id}",model="{model_manager.model_name}"}} {data.get("mape", 0)}')
+        # Rolling metrics for each window size
+        for metric_name, value in data.items():
+            if metric_name.endswith(('_5', '_10', '_20')):
+                base_metric = metric_name.rsplit('_', 1)[0]
+                window_size = metric_name.rsplit('_', 1)[1]
+                prometheus_output.append(f"# HELP ml_model_{metric_name} {base_metric.upper()} over {window_size} predictions")
+                prometheus_output.append(f"# TYPE ml_model_{metric_name} gauge")
+                prometheus_output.append(f'ml_model_{metric_name}{{series="{series_id}",model="{model_manager.model_name}"}} {value}')
         
         prometheus_output.append(f"# HELP ml_model_predictions_total Total number of model learning operations")
         prometheus_output.append(f"# TYPE ml_model_predictions_total counter")
