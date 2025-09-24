@@ -2,7 +2,7 @@ import os
 from collections import defaultdict, deque
 from river import metrics as river_metrics, utils
 
-DEFAULT_WINDOW_SIZE = int(os.getenv("ROLLING_WINDOW_SIZE"))
+DEFAULT_WINDOW_SIZE = int(os.getenv("ROLLING_WINDOW_SIZE", "30"))
 
 class MetricsManager:
     def __init__(self, window_size=None):
