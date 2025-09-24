@@ -123,7 +123,7 @@ async def main():
             for result in model_results:
                 value = col_func(result)
                 values.append(f"{result['model']}: {value}")
-            log(f"  {col_name:<10}: {' | '.join(values)}')
+            log(f"  {col_name:<10}: {' | '.join(values)}")
         log("")
         log(f"[4/4] SUCCESS: All 4 models trained in parallel")
         log(f"=== E2E PIPELINE COMPLETE: {end_time} | Duration: {duration:.3f}s ===")
