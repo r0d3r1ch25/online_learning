@@ -65,6 +65,12 @@ def train(request: TrainRequest):
             
         # Train model
         model_manager.train(request.features, request.target)
+        
+        # Count successful training
+        if "default" not in metrics_manager.series_counts:
+            metrics_manager.series_counts["default"] = 0
+        metrics_manager.series_counts["default"] += 1
+        
         return {"message": "Model trained successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -159,7 +165,7 @@ def prometheus_metrics():
         prometheus_output.append(f"# TYPE ml_model_mape gauge")
         prometheus_output.append(f'ml_model_mape{{series="{series_id}",model="{model_manager.model_name}"}} {data.get("mape", 0)}')
         
-        prometheus_output.append(f"# HELP ml_model_predictions_total Total number of predictions")
+        prometheus_output.append(f"# HELP ml_model_predictions_total Total number of model learning operations")
         prometheus_output.append(f"# TYPE ml_model_predictions_total counter")
         prometheus_output.append(f'ml_model_predictions_total{{series="{series_id}",model="{model_manager.model_name}"}} {data.get("count", 0)}')
         

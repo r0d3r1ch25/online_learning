@@ -247,7 +247,7 @@ curl -X POST http://localhost:8010/predict_learn \
   -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
 # Returns: {"prediction": 138.7}
 
-# Get model performance metrics (MAE, MSE, RMSE, MAPE)
+# Get model performance metrics (rolling MAE, MSE, RMSE, MAPE over last 30 predictions)
 curl http://localhost:8010/model_metrics
 
 # Get Prometheus-compatible metrics
@@ -266,7 +266,8 @@ curl http://localhost:8010/metrics
 - **Persistent Storage**: Redis FIFO lists store lag features, survives pod restarts
 - **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
 - **Independent Scaling**: Each model can scale separately
-- **Performance Tracking**: /model_metrics endpoint with MAE, MSE, RMSE, MAPE
+- **Rolling Metrics**: River-based rolling window metrics (MAE, MSE, RMSE, MAPE) over last 30 predictions
+- **Total Count Tracking**: Tracks total number of successful model learning operations (resets on pod restart)
 - **Prometheus Ready**: /metrics endpoint with model labels for monitoring
 
 ## Development Commands
@@ -337,7 +338,7 @@ open http://localhost:3000  # admin/admin
 - `ml_model_mae{model="knn_regressor"}` - KNN model MAE
 - `ml_model_rmse{model=~"linear_regression|ridge_regression|knn_regressor"}` - All models RMSE
 - `ml_model_mape{model=~".*"}` - All models MAPE
-- `ml_model_predictions_total` - Total predictions count by model
+- `ml_model_predictions_total` - Total model learning operations count by model
 
 **Loki Queries (Logs):**
 - `{app=~"model-.*"}` - All model service logs

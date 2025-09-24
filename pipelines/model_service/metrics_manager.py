@@ -1,45 +1,58 @@
-import math
-from collections import defaultdict
+import os
+from collections import defaultdict, deque
+from river import metrics as river_metrics, utils
+
+DEFAULT_WINDOW_SIZE = int(os.getenv("ROLLING_WINDOW_SIZE"))
 
 class MetricsManager:
-    def __init__(self):
-        self.predictions = defaultdict(list)
+    def __init__(self, window_size=None):
+        self.window_size = window_size or DEFAULT_WINDOW_SIZE
+        self.series_metrics = defaultdict(lambda: {
+            "mae": utils.Rolling(river_metrics.MAE(), window_size=self.window_size),
+            "mse": utils.Rolling(river_metrics.MSE(), window_size=self.window_size),
+            "rmse": utils.Rolling(river_metrics.RMSE(), window_size=self.window_size),
+            "mape": utils.Rolling(river_metrics.MAPE(), window_size=self.window_size)
+        })
+        self.series_history = defaultdict(lambda: deque(maxlen=self.window_size))
+        self.series_counts = defaultdict(int)
 
     def add(self, series_id, y_true, y_pred):
-        self.predictions[series_id].append({
-            'y_true': float(y_true), 
-            'y_pred': float(y_pred),
-            'error': abs(float(y_true) - float(y_pred))
-        })
+        y_true = float(y_true)
+        y_pred = float(y_pred)
+        abs_error = abs(y_true - y_pred)
+        
+        # Update rolling metrics
+        for metric in self.series_metrics[series_id].values():
+            metric.update(y_true, y_pred)
+        
+        # Store history for last_* values
+        self.series_history[series_id].append((y_true, y_pred, abs_error))
+        
+        # Increment total count
+        self.series_counts[series_id] += 1
 
     def get_metrics(self):
         """Returns comprehensive model performance metrics"""
-        if not self.predictions:
+        if not self.series_history:
             return {"message": "No predictions available yet"}
         
         metrics = {}
-        for series_id, preds in self.predictions.items():
-            if not preds:
+        for series_id in self.series_history:
+            history = self.series_history[series_id]
+            if not history:
                 continue
-                
-            errors = [p['error'] for p in preds]
-            squared_errors = [(p['y_true'] - p['y_pred'])**2 for p in preds]
-            percentage_errors = [abs(p['y_true'] - p['y_pred']) / abs(p['y_true']) * 100 for p in preds if p['y_true'] != 0]
             
-            mae = sum(errors) / len(errors)
-            mse = sum(squared_errors) / len(squared_errors)
-            rmse = math.sqrt(mse)
-            mape = sum(percentage_errors) / len(percentage_errors) if percentage_errors else 0
+            last_actual, last_pred, last_error = history[-1]
             
             metrics[series_id] = {
-                'count': len(preds),
-                'mae': round(mae, 4),
-                'mse': round(mse, 4), 
-                'rmse': round(rmse, 4),
-                'mape': round(mape, 4),
-                'last_prediction': preds[-1]['y_pred'],
-                'last_actual': preds[-1]['y_true'],
-                'last_error': preds[-1]['error']
+                'count': self.series_counts[series_id],
+                'mae': round(self.series_metrics[series_id]["mae"].get() or 0.0, 4),
+                'mse': round(self.series_metrics[series_id]["mse"].get() or 0.0, 4),
+                'rmse': round(self.series_metrics[series_id]["rmse"].get() or 0.0, 4),
+                'mape': round(self.series_metrics[series_id]["mape"].get() or 0.0, 4),
+                'last_prediction': last_pred,
+                'last_actual': last_actual,
+                'last_error': last_error
             }
         
         return metrics
