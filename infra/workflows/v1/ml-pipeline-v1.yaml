@@ -6,7 +6,9 @@ metadata:
 spec:
   schedule: "* * * * *"  # Every minute (standard 5-field cron format)
   timezone: "UTC"
-  successfulJobsHistoryLimit: 25  # Keep last 25 successful workflows
+  startingDeadlineSeconds: 90
+  concurrencyPolicy: Forbid  # Prevent concurrent runs
+  successfulJobsHistoryLimit: 20  # Keep last 25 successful workflows
   failedJobsHistoryLimit: 5       # Keep last 5 failed workflows
   workflowSpec:
     entrypoint: e2e-pipeline
@@ -14,7 +16,7 @@ spec:
     - name: e2e-pipeline
       container:
         image: r0d3r1ch25/ml-e2e-job:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         command: ["python", "pipeline.py"]
         resources:
           requests:

@@ -1,5 +1,3 @@
-# NOT BEING USED - OLD FILE HEADER COMMENT
-
 import logging
 import os
 from fastapi import FastAPI, HTTPException
@@ -59,9 +57,9 @@ def train(request: TrainRequest):
         try:
             pred = model_manager.predict(request.features)
             metrics_manager.add("default", request.target, pred)
-        except:
+        except Exception as e:
             # First few observations may not have enough data for prediction
-            pass
+            logging.info(f"Prediction failed during training (cold start): {e}")
             
         # Train model
         model_manager.train(request.features, request.target)
@@ -165,6 +163,10 @@ def prometheus_metrics():
         prometheus_output.append(f"# HELP ml_model_last_prediction Last prediction value")
         prometheus_output.append(f"# TYPE ml_model_last_prediction gauge")
         prometheus_output.append(f'ml_model_last_prediction{{series="{series_id}",model="{model_manager.model_name}"}} {data.get("last_prediction", 0)}')
+        
+        prometheus_output.append(f"# HELP ml_model_last_actual Last actual value")
+        prometheus_output.append(f"# TYPE ml_model_last_actual gauge")
+        prometheus_output.append(f'ml_model_last_actual{{series="{series_id}",model="{model_manager.model_name}"}} {data.get("last_actual", 0)}')
         
         prometheus_output.append(f"# HELP ml_model_last_error Last prediction error")
         prometheus_output.append(f"# TYPE ml_model_last_error gauge")
