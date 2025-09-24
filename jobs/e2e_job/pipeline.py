@@ -112,7 +112,6 @@ async def main():
         
         # Column-by-column approach for better readability
         metrics_columns = [
-            ("Model", lambda r: r['model']),
             ("Prediction", lambda r: f"{r['prediction']:.4f}" if 'prediction' in r else "ERROR"),
             ("Count", lambda r: str(r['metrics'].get('count', 0)) if 'metrics' in r else "-"),
             ("Error", lambda r: f"{target - r['prediction']:.2f}" if 'prediction' in r else "-"),
@@ -124,7 +123,7 @@ async def main():
             for result in model_results:
                 value = col_func(result)
                 values.append(f"{result['model']}: {value}")
-            log(f"  {col_name:<10}: {' | '.join(values)}")
+            log(f"  {col_name:<10}: {' | '.join(values)}')
         log("")
         log(f"[4/4] SUCCESS: All 4 models trained in parallel")
         log(f"=== E2E PIPELINE COMPLETE: {end_time} | Duration: {duration:.3f}s ===")
