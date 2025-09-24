@@ -114,9 +114,6 @@ async def main():
         metrics_columns = [
             ("Model", lambda r: r['model']),
             ("Prediction", lambda r: f"{r['prediction']:.4f}" if 'prediction' in r else "ERROR"),
-            ("MAE", lambda r: f"{r['metrics'].get('mae', 0):.2f}" if 'metrics' in r else "-"),
-            ("RMSE", lambda r: f"{r['metrics'].get('rmse', 0):.2f}" if 'metrics' in r else "-"),
-            ("MAPE", lambda r: f"{r['metrics'].get('mape', 0):.2f}" if 'metrics' in r else "-"),
             ("Count", lambda r: str(r['metrics'].get('count', 0)) if 'metrics' in r else "-"),
             ("Error", lambda r: f"{target - r['prediction']:.2f}" if 'prediction' in r else "-"),
             ("Time", lambda r: f"{r['duration']:.3f}s")
