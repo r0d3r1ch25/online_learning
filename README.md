@@ -1,716 +1,251 @@
 # Online Learning MLOps Platform
 
-A complete MLOps platform for online learning experiments with real-time model training, feature extraction, and workflow orchestration using Kubernetes and Argo Workflows.
+A production-style MLOps stack for near real-time time-series forecasting. The platform streams observations, engineers features with Redis-backed state, trains multiple River-based online models, and orchestrates the end-to-end workflow with Argo Workflows on Kubernetes. It packages microservices, infrastructure, observability, and automation so the system can be deployed, monitored, and iterated like a production environment.
 
-## Architecture Overview
+## Key Capabilities
+- Real-time ingestion of 744 monthly observations plus live cryptocurrency enrichment via Coinbase.
+- Feature service that materialises configurable lag features backed by Redis with automatic in-memory failover.
+- Four independent online regression services (Linear, Ridge, KNN, AMF) exposing prediction, online learning, and detailed rolling metrics.
+- Argo CronWorkflow that orchestrates ingestion → feature extraction → multi-model training in parallel using an asyncio job container.
+- Kubernetes-native deployment with dedicated namespaces, resource requests/limits, k3d bootstrap automation, and manifests managed through Kustomize overlays.
+- Full observability stack (Prometheus, Grafana, Loki, Promtail) and GitHub Actions CI/CD pipelines that test, build, and publish non-root Docker images for every workload.
 
-The platform consists of multiple microservices deployed on a k3d Kubernetes cluster:
-
-- **Ingestion Service** (Port 8002): Streams time series data observations one at a time
-- **Feature Service** (Port 8001): Calculates lag features with Redis persistence and outputs model-ready format  
-- **Model Services**: Multiple online ML models with real-time training and prediction
-  - **Linear Regression** (Port 8010)
-  - **Ridge Regression** (Port 8011) 
-  - **KNN Regressor** (Port 8012)
-  - **AMF Regressor** (Port 8013)
-- **Coinbase Service** (Port 8003): Cryptocurrency data streaming
-- **Redis** (Port 6379): Persistent storage for lag features
-
-## Project Structure
+## System Topology
 
 ```
-online_learning/
-├── .github/workflows/          # CI/CD pipelines
-│   ├── ingestion.yml          # Ingestion service CI/CD
-│   ├── features_ci.yml        # Feature service CI/CD
-│   ├── model_ci.yml           # Model service CI/CD
-│   └── e2e_job_ci.yml         # E2E job CI/CD
-├── pipelines/                 # Microservices
-│   ├── ingestion_service/     # Time series data streaming
-│   │   ├── tests/            # Unit tests
-│   │   │   └── test_ingestion.py
-│   │   ├── __init__.py       # Python package init
-│   │   ├── data.csv          # Sample dataset (1949-2010 monthly data)
-│   │   ├── service.py        # Core ingestion logic
-│   │   ├── main.py           # FastAPI application
-│   │   ├── Dockerfile        # Non-root container image
-│   │   ├── README.md         # Service documentation
-│   │   └── requirements.txt  # Python dependencies
-│   ├── feature_service/       # Feature extraction
-│   │   ├── tests/            # Unit tests
-│   │   │   ├── test_api.py
-│   │   │   ├── test_features.py
-│   │   │   └── test_integration.py
-│   │   ├── __init__.py       # Python package init
-│   │   ├── feature_manager.py # Time series feature engineering
-│   │   ├── service.py        # FastAPI service
-│   │   ├── main.py           # Application entry point
-│   │   ├── Dockerfile        # Non-root container image
-│   │   ├── README.md         # Service documentation
-│   │   └── requirements.txt  # Python dependencies
-│   ├── model_service/         # Online ML models
-│   │   ├── tests/            # Unit tests
-│   │   │   ├── test_integration.py
-│   │   │   └── test_requests.py
-│   │   ├── __init__.py       # Python package init
-│   │   ├── model_manager.py   # Online learning algorithms
-│   │   ├── metrics_manager.py # Performance tracking
-│   │   ├── service.py        # FastAPI service
-│   │   ├── main.py           # Application entry point
-│   │   ├── Dockerfile        # Non-root container image
-│   │   ├── README.md         # Service documentation
-│   │   └── requirements.txt  # Python dependencies
-│   └── coinbase_service/      # Cryptocurrency data streaming
-│       ├── __init__.py       # Python package init
-│       ├── service.py        # Coinbase API integration
-│       ├── main.py           # FastAPI application
-│       ├── Dockerfile        # Non-root container image
-│       └── requirements.txt  # Python dependencies
-├── jobs/                      # Job containers
-│   └── e2e_job/              # End-to-end pipeline job
-│       ├── tests/            # Unit tests
-│       │   ├── requirements.txt
-│       │   └── test_pipeline.py
-│       ├── Dockerfile        # Non-root container image
-│       ├── pipeline.py       # Pipeline orchestration logic
-│       ├── README.md         # Job documentation
-│       └── requirements.txt  # Job dependencies
-├── infra/                     # Infrastructure as Code
-│   ├── k8s/                  # Kubernetes manifests
-│   │   ├── ml-services/      # ML microservices deployment
-│   │   │   ├── deployments/  # Deployment manifests (including Redis)
-│   │   │   ├── services/     # Service manifests
-│   │   │   ├── kustomization.yaml
-│   │   │   └── namespace.yaml
-│   │   ├── argo/             # Argo Workflows setup
-│   │   │   ├── kustomization.yaml
-│   │   │   ├── namespace.yaml
-│   │   │   └── quick-start-minimal.yaml
-│   │   ├── monitoring/       # Observability stack
-│   │   │   ├── configmaps/   # Grafana, Prometheus, Promtail configs
-│   │   │   ├── deployments/  # Monitoring service deployments
-│   │   │   ├── services/     # Service manifests
-│   │   │   ├── kustomization.yaml
-│   │   │   ├── namespace.yaml
-│   │   │   └── rbac.yaml
-│   │   └── kustomization.yaml # Root kustomization
-│   ├── workflows/            # Argo workflow definitions
-│   │   └── v1/               # Active CronWorkflow (ml-cron-v1)
-│   │       └── ml-pipeline-v1.yaml
-│   └── test_pipeline.sh      # Manual pipeline testing script
-├── .gitignore                # Git ignore rules
-├── Makefile                  # Infrastructure automation
-└── README.md                 # This file
+                         +-----------------------------+
+                         |     Argo CronWorkflow       |
+                         | infra/workflows/v1/...yaml  |
+                         +-------------+---------------+
+                                       |
+                                       v
++-------------------+      +-------------------------+        +-------------------------------------------+
+| Ingestion Service | ---> | Feature Service + Redis | -----> | Model Services (Linear/Ridge/KNN/AMF)     |
+| FastAPI :8002     |      | FastAPI :8001           |        | FastAPI (ClusterIP :8010-:8013 -> :8000)  |
++-------------------+      +-------------------------+        +-------------------------------------------+
+          ^                           |                                        |
+          |                           |                                        |
+          |                           v                                        v
+          |                    Redis feature cache                Prometheus scrapes /metrics endpoints
+          |                  (ml-services namespace)                      Grafana visualises metrics
+          |
+          +---- Coinbase Service :8003 (optional market signal)
+
+Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo components live in the argo namespace, and all ML services plus Redis reside in ml-services.
 ```
 
-## Infrastructure Components
+## Repository Layout
 
-### Kubernetes Namespaces
-
-#### ml-services
-- **ingestion-service**: Data streaming API (Port 8002)
-- **feature-service**: Time series feature extraction API (Port 8001)
-- **model-linear**: Linear regression model API (Port 8010)
-- **model-ridge**: Ridge regression model API (Port 8011)
-- **model-knn**: KNN regressor model API (Port 8012)
-- **model-amfr**: AMF regressor model API (Port 8013)
-- **coinbase-service**: Cryptocurrency data streaming API (Port 8003)
-- **redis**: Persistent storage for lag features (Port 6379)
-
-
-#### argo
-- **argo-server**: Workflow management UI (Port 2746)
-- **workflow-controller**: Workflow execution engine
-
-#### monitoring
-- **grafana**: Log visualization dashboard with Loki and Prometheus data sources (Port 3000)
-- **loki**: Log aggregation backend (Port 3100)
-- **promtail**: Log collection agent (DaemonSet)
-- **prometheus**: Metrics collection and monitoring with ML model metrics (Port 9090)
-
-## Quick Start
-
-### 1. Cluster Setup
-
-```bash
-# Create k3d cluster with LoadBalancer support
-make cluster-up
-
-# Deploy all services
-make apply
+```
+.
+├── Makefile                           # k3d bootstrap, kustomize apply, cron workflow helper
+├── README.md                          # Project documentation (this file)
+├── .github/workflows/                 # GitHub Actions for every workload
+│   ├── coinbase_ci.yml
+│   ├── e2e_job_ci.yml
+│   ├── features_ci.yml
+│   ├── ingestion.yml
+│   └── model_ci.yml
+├── infra/
+│   ├── k8s/
+│   │   ├── argo/                     # Argo controller + server manifests
+│   │   ├── ml-services/              # Deployments & services for Redis + microservices
+│   │   └── monitoring/               # Prometheus, Grafana, Loki, Promtail manifests
+│   ├── workflows/
+│   │   └── v1/ml-pipeline-v1.yaml    # CronWorkflow (every minute) running the end-to-end job
+│   └── kustomization.yaml            # Root Kustomize entrypoint
+├── jobs/
+│   └── e2e_job/
+│       ├── pipeline.py               # Async orchestration hitting all services
+│       ├── Dockerfile                # Non-root job image
+│       └── tests/                    # Lightweight unit tests for job code
+├── pipelines/
+│   ├── coinbase_service/             # External exchange-rate streaming service
+│   ├── feature_service/              # Lag feature computation + Redis integration
+│   ├── ingestion_service/            # Dataset streaming API
+│   └── model_service/                # Online ML API (replicated for each model type)
+└── util/Model_Metrics_Dashboard.json # Grafana dashboard for model metrics
 ```
 
-### 2. Service Endpoints
-
-Once deployed, access services via LoadBalancer:
-
-- **Feature Service**: `http://<your-ip>:8001` - Feature extraction
-- **Ingestion Service**: `http://<your-ip>:8002` - Data streaming
-- **Coinbase Service**: `http://<your-ip>:8003` - Crypto data streaming
-- **Model Services**: Internal cluster access only (ClusterIP) - Linear, Ridge, KNN, AMFR regression models
-- **Argo Server**: `https://<your-ip>:2746` - Workflow management
-- **Grafana**: `http://<your-ip>:3000` - Monitoring (admin/admin)
-- **Prometheus**: `http://<your-ip>:9090` - Metrics collection and monitoring
-- **Loki**: `http://<your-ip>:3100` - Log aggregation API
-
-### 3. Run Online Learning Pipeline
-
-```bash
-# Start workflow (all 4 models in parallel, every minute)
-make cron
-
-# Monitor workflows
-argo list -n argo
-
-# Stop workflow
-kubectl delete cronworkflow ml-cron-v1 -n argo
-
-# Monitor in Argo UI
-open https://<your-ip>:2746
-```
-
-## API Usage
-
-### Ingestion Service API
-
-```bash
-# Get next observation (date + value)
-curl http://<your-ip>:8002/next
-# Returns: {"observation_id": 1, "input": "1949-01", "target": 112, "remaining": 143}
-
-# Reset stream to beginning
-curl -X POST http://<your-ip>:8002/reset
-
-# Check stream status
-curl http://<your-ip>:8002/status
-
-# Health check
-curl http://<your-ip>:8002/health
-```
-
-### Feature Service API
-
-```bash
-# Health check
-curl http://<your-ip>:8001/health
-
-# Service information
-curl http://<your-ip>:8001/info
-
-# Add observation and extract lag features
-curl -X POST http://<your-ip>:8001/add \
-  -H "Content-Type: application/json" \
-  -d '{"series_id": "default", "value": 125.0}'
-# Returns: {"series_id": "default", "features": {"in_1": 120.0, "in_2": 115.0, ...}, "target": 125.0, "available_lags": 2}
-
-# Get series information
-curl http://<your-ip>:8001/series/default
-```
-
-### Coinbase Service API
-
-```bash
-# Health check
-curl http://<your-ip>:8003/health
-
-# Get current XRP rate (inverse of Coinbase rate)
-curl http://<your-ip>:8003/next
-# Returns: {"series_id": "XRP", "target": 2.84, "datetime": "2024-01-15T08:30:25-06:00"}
-```
-
-### Model Services API
-
-**Four independent model services with feature-agnostic online ML (ClusterIP only):**
-
-```bash
-# Model services are internal only - use port-forward for external access
-kubectl port-forward -n ml-services svc/model-linear 8010:8010
-
-# Linear Regression Model (Port 8010)
-curl http://localhost:8010/health
-curl http://localhost:8010/info
-
-# Train any model (example with linear model)
-curl -X POST http://localhost:8010/train \
-  -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 125.0, "in_2": 120.0}, "target": 130.0}'
-
-# Predict (single-step horizon)
-curl -X POST http://localhost:8010/predict \
-  -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 130.0, "in_2": 125.0}}'
-# Returns: {"forecast": [{"value": 135.2}]}
-
-# Online learning (predict then learn)
-curl -X POST http://localhost:8010/predict_learn \
-  -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 135.0, "in_2": 130.0}, "target": 140.0}'
-# Returns: {"prediction": 138.7}
-
-# Get model performance metrics (rolling MAE, MSE, RMSE, MAPE over multiple window sizes: 5, 10, 20 predictions)
-curl http://localhost:8010/model_metrics
-
-# Get Prometheus-compatible metrics
-curl http://localhost:8010/metrics
-```
-
-**Available Models:**
-- **Linear Regression**: Standard linear regression with StandardScaler
-- **Ridge Regression**: L2 regularized linear regression
-- **KNN Regressor**: K-Nearest Neighbors with 5 neighbors
-- **AMF Regressor**: Adaptive Model Forest for ensemble learning
-
-**Key Features:**
-- **Feature Agnostic**: Accepts any number of input features dynamically
-- **Configurable Lags**: N_LAGS environment variable controls feature service output (configurable via deployment YAML)
-- **Persistent Storage**: Redis FIFO lists store lag features, survives pod restarts
-- **Single-Step Prediction**: FORECAST_HORIZON=1 (hardcoded)
-- **Independent Scaling**: Each model can scale separately
-- **Multi-Window Rolling Metrics**: River-based rolling window metrics (MAE, MSE, RMSE, MAPE) over multiple window sizes [5, 10, 20] predictions
-- **Total Count Tracking**: Tracks total number of successful model learning operations (resets on pod restart)
-- **Prometheus Ready**: /metrics endpoint with model labels for monitoring
-
-## Development Commands
-
-### Cluster Management
-```bash
-make cluster-up      # Create k3d cluster
-make cluster-down    # Delete cluster
-make again           # Reset cluster with latest code
-```
-
-### Deployment
-```bash
-make apply           # Deploy all services
-```
-
-### Service Testing
-```bash
-# Run unit tests for each service
-pytest pipelines/ingestion_service/tests/ -v
-pytest pipelines/feature_service/tests/ -v
-pytest pipelines/model_service/tests/ -v
-
-# Start CronWorkflow (runs every 1 minute)
-make cron
-
-# Run unit tests for e2e job
-cd jobs/e2e_job && PYTHONPATH=. pytest tests/ -v
-
-# Manual pipeline testing
-bash infra/test_pipeline.sh
-```
-
-### Pipeline Integration Examples
-```bash
-# Complete pipeline: Ingestion -> Features -> Model
-# 1. Get observation from ingestion service
-curl http://localhost:8002/next
-
-# 2. Extract features (pipe ingestion output to feature service)
-curl -s http://localhost:8002/next | \
-  jq '{series_id: "manual_test", value: .target}' | \
-  curl -s -X POST -H "Content-Type: application/json" \
-    --data-binary @- http://localhost:8001/add
-
-# 3. Train model (pipe feature output to model service)
-curl -s http://localhost:8002/next | \
-  jq '{series_id: "manual_test", value: .target}' | \
-  curl -s -X POST -H "Content-Type: application/json" \
-    --data-binary @- http://localhost:8001/add | \
-  jq '{features: .features, target: .target}' | \
-  curl -s -X POST -H "Content-Type: application/json" \
-    --data-binary @- http://localhost:8000/predict_learn
-
-# 4. Check model metrics
-curl http://localhost:8000/model_metrics
-```
-
-### Grafana Monitoring
-```bash
-# Access Grafana with pre-configured data sources
-open http://localhost:3000  # admin/admin
-```
-
-**Prometheus Queries (Metrics):**
-- `ml_model_mae_5{model="linear_regression"}` - Linear model MAE over 5 predictions
-- `ml_model_mae_10{model="ridge_regression"}` - Ridge model MAE over 10 predictions
-- `ml_model_mae_20{model="knn_regressor"}` - KNN model MAE over 20 predictions
-- `ml_model_rmse_10{model=~"linear_regression|ridge_regression|knn_regressor"}` - All models RMSE over 10 predictions
-- `ml_model_mape_20{model=~".*"}` - All models MAPE over 20 predictions
-- `ml_model_predictions_total` - Total model learning operations count by model
-
-**Loki Queries (Logs):**
-- `{app=~"model-.*"}` - All model service logs
-- `{app=~"model-.*"} |= "WARNING"` - Warning logs only
-- `{namespace="ml-services"}` - All ML services logs
-- `{namespace="argo"}` - All Argo workflow logs
-- `{app=~"ml-cron-v1.*"}` - CronWorkflow execution logs
-
-## CI/CD Pipeline
-
-### Automated Workflows
-
-Each service has automated GitHub Actions that trigger on:
-- **Push to main** with changes in service directory
-- **Manual trigger** via GitHub Actions UI
-
-#### Ingestion Service (`pipelines/ingestion_service/**`)
-- Runs pytest tests
-- Builds and tests Docker container
-- Validates API endpoints with health check
-- Pushes to Docker Hub: `r0d3r1ch25/ml-ingestion:latest`
-
-#### Feature Service (`pipelines/feature_service/**`)
-- Runs pytest tests with PYTHONPATH
-- Builds Docker image
-- Pushes to Docker Hub: `r0d3r1ch25/ml-features:latest`
-
-#### Model Service (`pipelines/model_service/**`)
-- Runs pytest tests
-- Builds Docker image  
-- Pushes to Docker Hub: `r0d3r1ch25/ml-model:latest`
-
-#### E2E Job (`jobs/e2e_job/**`)
-- Runs pytest tests with mocked services
-- Builds Docker image
-- Pushes to Docker Hub: `r0d3r1ch25/ml-e2e-job:latest`
-
-## Data Flow
-
-1. **Ingestion Service** streams time series observations (date, value pairs)
-2. **Feature Service** calculates lag features with Redis persistence and outputs model-ready format (in_1 to in_{N_LAGS})
-3. **Model Service** performs feature-agnostic online learning with any features provided
-4. **Argo CronWorkflow** orchestrates the end-to-end pipeline every minute
-5. **Monitoring Stack** tracks logs and metrics across all services
-
-## Configuration
-
-### Feature Configuration
-The number of lag features is configured via environment variable in deployment YAML:
-
-```bash
-# Current configuration: N_LAGS=15 (creates in_1 to in_15)
-# Change in feature-service.yaml deployment:
-env:
-- name: N_LAGS
-  value: "15"
-
-# Feature service generates: in_1, in_2, ..., in_15
-# Model service automatically adapts to any number of features
-```
-
-### Model Configuration
-Models are configured via environment variables in Kubernetes deployments:
-- **Linear**: `MODEL_NAME=linear_regression`
-- **Ridge**: `MODEL_NAME=ridge_regression` 
-- **KNN**: `MODEL_NAME=knn_regressor`
-- **AMFR**: `MODEL_NAME=amf_regressor`
-
-### Redis Configuration
-Feature service uses Redis for persistent lag feature storage:
-- **Host**: `REDIS_HOST=redis.ml-services.svc.cluster.local`
-- **Port**: `REDIS_PORT=6379`
-- **Fallback**: Automatic fallback to in-memory storage if Redis unavailable
-- **Storage**: FIFO lists with automatic size management (LPUSH/LTRIM)
-
-## Dataset
-
-The platform uses a sample time series dataset (`data.csv`) with monthly observations from 1949-2010:
-- **Input**: Date strings (YYYY-MM format)
-- **Target**: Integer values with W pattern, upward trend, and seasonality
-- **Total**: 744 observations for extended online learning simulation
-
-## Troubleshooting
-
-### Service Connectivity
-```bash
-# Test service health
-curl http://<your-ip>:8001/health  # Feature service  
-curl http://<your-ip>:8002/health  # Ingestion service
-curl http://<your-ip>:8003/health  # Coinbase service
-# Model services are only accessible within the cluster
-# Use kubectl port-forward for external access if needed
-kubectl port-forward -n ml-services svc/model-linear 8010:8010
-curl http://localhost:8010/health  # Linear model
-```
-
-### Logs and Monitoring
-- **Grafana**: `http://<your-ip>:3000` (admin/admin) - Pre-configured with Loki and Prometheus data sources
-- **Prometheus**: `http://<your-ip>:9090` - ML model metrics collection and monitoring
-- **Loki**: Log aggregation from all services via Promtail
-- **Argo Workflows**: `https://<your-ip>:2746` - Pipeline orchestration
-- **Pod Logs**: `kubectl logs -n ml-services <pod-name>`
-
-### Redis Storage Verification
-```bash
-# Check Redis connection
-kubectl logs -n ml-services deployment/feature-service | grep REDIS
-
-# Look for these log patterns:
-# REDIS CONNECTED: Using Redis for persistent lag features
-# REDIS UNAVAILABLE: Using in-memory storage
-# REDIS: Added observation (persistent storage)
-# MEMORY: Added observation (temporary storage)
-
-# Check Redis data directly
-kubectl exec -n ml-services deployment/redis -- redis-cli KEYS "series:*:values"
-kubectl exec -n ml-services deployment/redis -- redis-cli LRANGE "series:features_pipeline:values" 0 -1
-```
-
-## Service Documentation
-
-Each microservice has detailed documentation in its respective directory:
-
-- **[Ingestion Service](pipelines/ingestion_service/README.md)**: Time series data streaming API with sequential observation delivery
-- **[Feature Service](pipelines/feature_service/README.md)**: Lag feature calculation with model-ready output format (in_1 to in_15)
-- **[Model Service](pipelines/model_service/README.md)**: Feature-agnostic online ML service with multiple regression models
-- **[E2E Job](jobs/e2e_job/README.md)**: End-to-end pipeline orchestration job for Argo Workflows
-
-## Docker Images
-
-All images use non-root users for security and are automatically built and pushed to Docker Hub:
-
-- **ml-ingestion**: `r0d3r1ch25/ml-ingestion:latest` - Time series data streaming service
-- **ml-features**: `r0d3r1ch25/ml-features:latest` - Feature extraction service  
-- **ml-model**: `r0d3r1ch25/ml-model:latest` - Online ML service (used by all 3 model deployments)
-- **ml-coinbase**: `r0d3r1ch25/ml-coinbase:latest` - Cryptocurrency data streaming service
-- **ml-e2e-job**: `r0d3r1ch25/ml-e2e-job:latest` - End-to-end pipeline orchestration job
-
-**Security Features:**
-- All containers run as non-root user `appuser`
-- Principle of least privilege applied
-- Reduced attack surface for production deployments
-
-## Technology Stack
-
-- **Container Orchestration**: Kubernetes (k3d)
-- **Workflow Engine**: Argo Workflows
-- **API Framework**: FastAPI
-- **Feature Storage**: Redis FIFO lists for lag features
-- **Monitoring**: Grafana + Loki + Promtail + Prometheus
-- **CI/CD**: GitHub Actions
-- **Container Registry**: Docker Hub
-- **Online Learning**: River (incremental ML algorithms)
-
-## Dependencies
-
-### Core Services
-- **FastAPI**: Web framework for all services
-- **Uvicorn**: ASGI server
-- **Pydantic**: Data validation
-- **River**: Online machine learning library
-- **Redis**: Persistent storage for lag features
-- **Pandas**: Data manipulation (ingestion service)
-- **Requests**: HTTP client library
-
-### Testing
-- **Pytest**: Testing framework
-- **HTTPx**: Async HTTP client for testing
-
-### Infrastructure
-- **k3d**: Lightweight Kubernetes distribution
-- **Kustomize**: Kubernetes configuration management
-- **Argo Workflows**: Workflow orchestration
-- **Grafana Stack**: Monitoring and observability
-
-## Current Project Status
-
-### Completed Components
-
-**Microservices (All Deployed)**
-- Ingestion Service: Streaming time series data (Port 8002)
-- Feature Service: Lag feature extraction with Redis persistence (Port 8001) 
-- Model Services: Online ML with River (Linear, Ridge, KNN, AMFR - Ports 8010-8013)
-- Coinbase Service: Cryptocurrency data streaming (Port 8003)
-- Redis: Persistent FIFO storage for lag features (Port 6379)
-
-**Infrastructure (Kubernetes Ready)**
-- k3d cluster with LoadBalancer support
-- 3 namespaces: ml-services, argo, monitoring
-- All services accessible via LoadBalancer
-- Health checks and resource limits configured
-- Redis integration with automatic fallback to in-memory
-
-**CI/CD Pipeline (Automated)**
-- GitHub Actions for all services + e2e job
-- Automated testing with pytest (Redis mocking)
-- Docker build/push to Docker Hub
-- Manual and path-based triggers
-- Non-root container security
-
-**Workflow Orchestration**
-- Argo Workflows installed and configured
-- CronWorkflow (ml-cron-v1) with parallel model training
-- Async pipeline with aiohttp for concurrent model calls
-- Workflow management UI accessible
-- Manual testing script available
-
-**Monitoring & Observability**
-- Grafana + Loki + Promtail + Prometheus stack
-- Log aggregation from all services
-- ML model metrics collection (MAE, RMSE, MAPE)
-- Redis connection monitoring via logs
-- Pre-configured data sources in Grafana
-- Dashboard accessible via LoadBalancer
-
-### Missing Features
-
-**Advanced ML Features**
-- Model versioning and A/B testing
-- Hyperparameter optimization
-- Model drift detection
-- Feature importance tracking
-
-**Production Readiness**
-- SSL/TLS encryption
-- Authentication and authorization
-- Resource quotas and limits
-- Backup and disaster recovery
-- Multi-environment support (dev/staging/prod)
-
-**Data Management**
-- Data validation and quality checks
-- Feature store with versioning
-- Data lineage tracking
-- Batch data ingestion
-
-
-
-### Ready to Use
-
-1. **Deploy**: `make cluster-up && make apply`
-2. **Access**: All services available at `http://<your-ip>:port`
-3. **Monitor**: Grafana at `http://<your-ip>:3000`
-4. **Orchestrate**: Argo UI at `https://<your-ip>:2746`
-5. **Test**: `bash infra/test_pipeline.sh` for manual testing
-
-## Complete API Reference
-
-### Ingestion Service (Port 8002)
-
-#### `GET /health`
-Health check endpoint for Kubernetes probes.
-```bash
-curl http://<your-ip>:8002/health
-# Returns: {"status": "healthy", "total_observations": 144}
-```
-
-#### `GET /next`
-Get the next observation from the dataset.
-```bash
-curl http://<your-ip>:8002/next
-# Returns: {"observation_id": 1, "input": "1949-01", "target": 112, "remaining": 143}
-# Returns 204 when stream is exhausted
-```
-
-#### `POST /reset`
-Reset the stream to start from the beginning.
-```bash
-curl -X POST http://<your-ip>:8002/reset
-# Returns: {"message": "Stream reset to beginning", "total_observations": 144}
-```
-
-#### `GET /status`
-Get current stream status.
-```bash
-curl http://<your-ip>:8002/status
-# Returns: {"current_index": 5, "total_observations": 144, "remaining": 139, "completed": false}
-```
-
-### Feature Service (Port 8001)
-
-#### `GET /health`
-Health check endpoint for Kubernetes probes.
-```bash
-curl http://<your-ip>:8001/health
-# Returns: {"status": "healthy", "service": "feature_service"}
-```
-
-#### `GET /info`
-Get service and series information.
-```bash
-curl http://<your-ip>:8001/info
-# Returns: {"service": "feature_service", "max_lags": 15, "output_format": "model_ready_in_1_to_in_15", "series_info": {}}
-```
-
-#### `POST /add`
-Add observation and extract lag features in model-ready format.
-```bash
-curl -X POST http://<your-ip>:8001/add \
-  -H "Content-Type: application/json" \
-  -d '{"series_id": "default", "value": 125.0}'
-# Returns: {"series_id": "default", "features": {"in_1": 120.0, "in_2": 115.0, ...}, "target": 125.0, "available_lags": 2}
-```
-
-#### `GET /series/{series_id}`
-Get information about a specific series.
-```bash
-curl http://<your-ip>:8001/series/default
-# Returns: {"series_id": "default", "length": 5, "latest_value": 125.0, "available_lags": 5}
-# Returns 404 if series not found
-```
-
-### Model Service (Port 8000)
-
-#### `GET /health`
-Health check endpoint for Kubernetes probes.
-```bash
-curl http://<your-ip>:8000/health
-# Returns: {"status": "ok", "model_loaded": true}
-```
-
-#### `GET /info`
-Get service information including current model configuration.
-```bash
-curl http://<your-ip>:8000/info
-# Returns: {"model_name": "River Linear Regression", "model_version": "0.22.0", "forecast_horizon": 1, "feature_agnostic": true, "regression_model": true, "available_models": ["linear_regression", "ridge_regression", "lasso_regression", "decision_tree", "bagging_regressor"]}
-```
-
-#### `POST /train`
-Train the model with features and target value.
-```bash
-curl -X POST http://<your-ip>:8000/train \
-  -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0}, "target": 130.0}'
-# Returns: {"message": "Model trained successfully"}
-```
-
-#### `POST /predict`
-Make prediction using current model state (single-step forecast).
-```bash
-curl -X POST http://<your-ip>:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}}'
-# Returns: {"forecast": [{"value": 135.2}]}
-```
-
-#### `POST /predict_learn`
-Predict then learn from actual value (online learning).
-```bash
-curl -X POST http://<your-ip>:8000/predict_learn \
-  -H "Content-Type: application/json" \
-  -d '{"features": {"in_1": 135.0, "in_2": 130.0, "in_3": 125.0}, "target": 140.0}'
-# Returns: {"prediction": 138.7}
-```
-
-#### `GET /model_metrics`
-Get comprehensive model performance metrics.
-```bash
-curl http://<your-ip>:8000/model_metrics
-# Returns: {"default": {"count": 15, "mae": 2.45, "mse": 8.12, "rmse": 2.85, "last_prediction": 138.7, "last_actual": 140.0, "last_error": 1.3}}
-```
-
-#### `GET /metrics`
-Prometheus-compatible metrics endpoint.
-```bash
-curl http://<your-ip>:8000/metrics
-# Returns: Prometheus format metrics (text/plain)
-# Example:
-# ml_model_mae{series="default"} 2.45
-# ml_model_mse{series="default"} 8.12
-# ml_model_rmse{series="default"} 2.85
-# ml_model_predictions_total{series="default"} 15
-# ml_model_last_prediction{series="default"} 138.7
-# ml_model_last_error{series="default"} 1.3
-```
+## Microservices
+
+### Ingestion Service (`pipelines/ingestion_service`, LoadBalancer :8002)
+- Streams `data.csv` (744 monthly observations) one record at a time with stateful iteration and reset.
+- FastAPI application exposing `GET /next`, `POST /reset`, `GET /status`, and `GET /health`.
+- Backed by Pandas for CSV management; no external dependencies beyond bundled data.
+- Tested with `pytest` via `TestClient` (`pipelines/ingestion_service/tests/test_ingestion.py`).
+- Container image: `r0d3r1ch25/ml-ingestion:latest` built automatically by GitHub Actions.
+
+### Feature Service (`pipelines/feature_service`, LoadBalancer :8001)
+- Wraps `LagFeatureManager`, which uses Redis lists for persistent lag storage with automatic fallback to in-memory deques when Redis is unavailable.
+- Produces `in_1 ... in_N` features where `N` is controlled by `N_LAGS` (deployment sets 15; CI/test suite pins 10 via environment variables).
+- Endpoints: `GET /health`, `GET /info`, `POST /add` returning model-ready feature vectors and `available_lags` metadata per series.
+- Extensive unit tests (`tests/test_api.py`, `tests/test_features.py`) and integration tests (`tests/test_integration.py`) that validate multiple series behaviour, lag ordering, and resilience when Redis is offline.
+- Container image: `r0d3r1ch25/ml-features:latest`.
+
+### Model Services (`pipelines/model_service`, ClusterIP :8010-:8013 → container :8000)
+- Single codebase parameterised by `MODEL_NAME` to host four online River models: linear regression, ridge regression, KNN regressor, and AMF regressor.
+- Exposes `POST /train`, `POST /predict`, `POST /predict_learn`, `GET /model_metrics`, and `GET /metrics` (Prometheus format) plus a standard `GET /health` and `GET /info`.
+- `MetricsManager` maintains rolling MAE/MSE/RMSE/MAPE windows (5/10/20) and last prediction diagnostics per logical series.
+- Services are ClusterIP by design; access externally with `kubectl port-forward -n ml-services svc/model-linear 8010:8010` (and similar for ridge/knn/amfr).
+- Thorough request-level tests in `tests/test_requests.py` covering cold starts, feature agnosticism, validation errors, Prometheus formatting, and metric aggregation.
+- Container image: `r0d3r1ch25/ml-model:latest` reused across all four deployments.
+
+### Coinbase Service (`pipelines/coinbase_service`, LoadBalancer :8003)
+- Optional enrichment service pulling exchange rates from Coinbase and returning inverse XRP price alongside timestamp (America/Mexico_City timezone).
+- Useful for injecting live signals into the pipeline or for validating external API integrations within the cluster.
+- Endpoints: `GET /health`, `GET /next`. Simple unit test at `tests/test_health.py`.
+- Container image: `r0d3r1ch25/ml-coinbase:latest`.
+
+## Online Pipeline & Orchestration
+- `jobs/e2e_job/pipeline.py` is an asyncio-driven orchestrator that fetches an observation, requests features, and fans out `predict_learn` calls across all four model services concurrently. It logs structured progress, emits durations per model, and surfaces prediction errors inline.
+- Container image `r0d3r1ch25/ml-e2e-job:latest` backs the CronWorkflow defined in `infra/workflows/v1/ml-pipeline-v1.yaml`.
+- CronWorkflow schedule: `* * * * *` (every minute) with `concurrencyPolicy: Forbid`, `successfulJobsHistoryLimit: 20`, and `failedJobsHistoryLimit: 5`. Adjust the cadence in the workflow manifest before applying if you do not need per-minute executions.
+- Workflow runs under the `argo` namespace; use the Argo CLI or UI to observe lineage, restart runs, or inspect pod logs.
+
+## Infrastructure & Deployment Model
+- Lightweight Kubernetes provided by `k3d`. `make cluster-up` provisions a cluster with LoadBalancer ports for FastAPI services, Argo UI (2746), Grafana (3000), Prometheus (9090), and Loki (3100).
+- Deployments and services managed with Kustomize overlays at `infra/k8s`. Namespaces:
+  - `ml-services`: ingestion, feature, model, coinbase microservices plus Redis.
+  - `argo`: workflow-controller and Argo server (using upstream quick start manifest).
+  - `monitoring`: Prometheus, Grafana, Loki, Promtail with cross-namespace scraping configuration.
+- Every deployment defines resource requests/limits, liveness/readiness probes, environment-driven configuration (e.g., `N_LAGS`, `MODEL_NAME`), and non-root security contexts.
+- Redis deployment (`infra/k8s/ml-services/deployments/redis-deployment.yaml`) offers persistence for lag buffers within the cluster lifetime; feature service automatically degrades gracefully if Redis is unreachable.
+- `Makefile` helpers:
+  - `make cluster-up`: create the k3d cluster.
+  - `make apply`: `kubectl apply -k infra/k8s/` (installs Argo, monitoring stack, and all services).
+  - `make cron`: apply the CronWorkflow from `infra/workflows/v1/ml-pipeline-v1.yaml`.
+  - `make cluster-down`: delete the k3d cluster.
+
+## Observability & Monitoring
+- Prometheus configuration (`infra/k8s/monitoring/configmaps/prometheus-config.yaml`) scrapes each model service’s `/metrics` endpoint at 60s intervals and includes self-monitoring for Prometheus itself.
+- Grafana (`infra/k8s/monitoring/deployments/grafana.yaml`) is pre-wired with Prometheus and Loki data sources. Import `util/Model_Metrics_Dashboard.json` to visualise per-model accuracy trends, error deltas, and request throughput.
+- Loki + Promtail capture logs across namespaces; query by labels such as `{namespace="ml-services"}` or `{app=~"model-.*"}` for targeted debugging.
+- Argo UI (accessible via `https://localhost:2746` when using port-forwarding) provides workflow-level visibility and log access for the job pods.
+
+## Continuous Delivery
+- GitHub Actions workflows are scoped per component using path filters:
+  - `ingestion.yml`, `features_ci.yml`, `model_ci.yml`, `coinbase_ci.yml`, `e2e_job_ci.yml`.
+- Each workflow checks out the repository, installs dependencies, runs `pytest`, builds Docker images, authenticates to Docker Hub, and publishes `r0d3r1ch25/ml-*` images.
+- `pipelines/feature_service/tests/*` and `pipelines/model_service/tests/*` cover both service contracts and business logic, preventing regressions before images are pushed.
+- Workflows target `linux/arm64` (adjust as required) and rely on `DOCKER_USERNAME`/`DOCKER_PASSWORD` secrets for registry access.
+
+## Data & Feature Management
+- Source dataset: `pipelines/ingestion_service/data.csv` (744 rows) representing monthly values with seasonality and trend; it drives deterministic replay for experimentation.
+- Feature service persists lag sequences per `series_id` to Redis keys like `series:<id>:values`. The service always returns a dense feature vector with zero-filled gaps to maintain schema stability for downstream models.
+- `available_lags` in the API response signals how many historical values were present prior to inserting the current observation, aiding feature completeness checks.
+- Metrics API from model services returns per-series histories, enabling downstream reporting or drift monitoring outside Grafana.
+
+## Testing & Quality Gates
+- Unit and integration tests are available for every workload:
+  - Ingestion: `pipelines/ingestion_service/tests/test_ingestion.py` exercises stream boundaries and HTTP responses.
+  - Feature service: API, logic, and end-to-end tests with optional Redis mocking.
+  - Model service: `tests/test_requests.py` validates training, prediction, error handling, metrics, and Prometheus output.
+  - Coinbase service: smoke test for health endpoint.
+  - E2E job: `jobs/e2e_job/tests/test_pipeline.py` covers logging and module imports.
+- Tests run automatically in CI and can be executed locally with `pytest` commands from the repo root or service directories.
+
+## Getting Started
+1. **Prerequisites**: Docker, `k3d`, `kubectl`, and optionally the Argo CLI (`argo`) and `kubectl krew` plugins for observability. Ensure Docker Hub credentials exist if you need to rebuild images.
+2. **Create a cluster**:
+   ```bash
+   make cluster-up
+   ```
+3. **Deploy the stack**:
+   ```bash
+   make apply
+   kubectl get pods -A
+   ```
+4. **(Optional) Start scheduled runs**:
+   ```bash
+   make cron
+   argo list -n argo
+   ```
+5. **Access services**:
+   - Feature service: `http://localhost:8001/health`
+   - Ingestion service: `http://localhost:8002/next`
+   - Coinbase service: `http://localhost:8003/next`
+   - Model services: port-forward as needed, e.g. `kubectl port-forward -n ml-services svc/model-linear 8010:8010`
+   - Grafana: `http://localhost:3000` (default `admin/admin`)
+   - Prometheus: `http://localhost:9090`
+   - Loki API: `http://localhost:3100`
+   - Argo UI: `https://localhost:2746` (accept the self-signed certificate)
+6. **Tear down** when done:
+   ```bash
+   make cluster-down
+   ```
+
+## Operating the Platform
+- **Trigger the pipeline manually**: Port-forward the model service of choice, then chain the ingestion → feature → model calls. Example:
+  ```bash
+  OBS=$(curl -s http://localhost:8002/next)
+  FEAT=$(echo "$OBS" | jq '{series_id: "manual", value: .target}' | curl -sX POST -H "Content-Type: application/json" --data-binary @- http://localhost:8001/add)
+  curl -sX POST -H "Content-Type: application/json" --data "{\"features\": $(echo "$FEAT" | jq '.features'), \"target\": $(echo "$FEAT" | jq '.target')}" http://localhost:8010/predict_learn
+  ```
+- **Inspect workflow runs**: `argo get ml-cron-v1 -n argo` or use the Argo UI to view DAGs, pod logs, and execution timelines.
+- **Monitor metrics**: open Grafana and import `util/Model_Metrics_Dashboard.json`, or query Prometheus directly:
+  - `ml_model_mae_10{model="ridge_regression"}`
+  - `ml_model_predictions_total{series="default"}`
+  - `ml_model_last_error{model="amf_regressor"}`
+- **Review logs**: `kubectl logs -n ml-services deployment/model-linear`, or run a Loki query such as `{app="model-linear"} |= "ERROR"` in Grafana Explore.
+
+## API Quick Reference
+
+### Ingestion Service (`http://<host>:8002`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET    | `/health` | Returns service status and dataset size. |
+| GET    | `/next`   | Streams next observation; returns 204 when the dataset is exhausted. |
+| POST   | `/reset`  | Resets stream cursor to the beginning of the dataset. |
+| GET    | `/status` | Reports current index, remaining observations, and completion flag. |
+
+### Feature Service (`http://<host>:8001`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET    | `/health` | Health probe for Kubernetes. |
+| GET    | `/info`   | Reports service metadata including `max_lags` and output schema. |
+| POST   | `/add`    | Accepts `{series_id, value}` and returns lag features, current target, and `available_lags`. |
+
+### Model Services (port-forward to desired service)
+| Service | Port-forward command | Notes |
+|---------|----------------------|-------|
+| Linear Regression | `kubectl port-forward -n ml-services svc/model-linear 8010:8010` | Access API at `http://localhost:8010`. |
+| Ridge Regression  | `kubectl port-forward -n ml-services svc/model-ridge 8011:8011`  | Same API contract as linear. |
+| KNN Regressor     | `kubectl port-forward -n ml-services svc/model-knn 8012:8012`    | Same API contract as linear. |
+| AMF Regressor     | `kubectl port-forward -n ml-services svc/model-amfr 8013:8013`   | Same API contract as linear. |
+
+Common endpoints once port-forwarded:
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET    | `/health` | Quick readiness probe. |
+| GET    | `/info`   | Returns model metadata, available model types, and configuration. |
+| POST   | `/train`  | Learns from `{features, target}` while opportunistically logging predictions for metrics. |
+| POST   | `/predict` | Returns single-step forecast in `{"forecast": [{"value": ...}]}` format. |
+| POST   | `/predict_learn` | Predicts then updates the model and rolling metrics in one call. |
+| GET    | `/model_metrics` | JSON summary containing counts, rolling metrics, last prediction, and model info. |
+| GET    | `/metrics` | Prometheus-formatted gauges and counters ready for scraping. |
+
+### Coinbase Service (`http://<host>:8003`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET    | `/health` | Health probe. |
+| GET    | `/next`   | Returns latest inverse XRP rate with timestamp. |
+
+## Troubleshooting & Operations
+- **Redis fallback**: Check feature-service logs for `REDIS CONNECTED` or `REDIS UNAVAILABLE` messages. Use `kubectl exec -n ml-services deployment/redis -- redis-cli LRANGE "series:default:values" 0 -1` to inspect stored lags.
+- **External API rate limits**: Coinbase requests may fail if the remote API throttles traffic. The service surfaces HTTP 500 with the upstream error message; scale replicas or add caching as needed.
+- **Workflow noise**: The CronWorkflow runs every minute by default. Disable with `kubectl delete cronworkflow ml-cron-v1 -n argo` if you prefer manual triggers.
+- **Certificate warnings**: The Argo server exposes HTTPS with self-signed certs. Use `--insecure-skip-tls-verify` flags or import the certificate for local trust during development.
+- **Resource pressure**: Update resource requests/limits in `infra/k8s/ml-services/deployments/*.yaml` and re-apply. k3d defaults are conservative; adjust for heavier loads.
+
+## Operational Backlog
+To elevate the platform further, consider the following next steps:
+- Introduce staged environments (dev/staging/prod) with image promotion policies and GitOps automation (e.g., Argo CD or Flux).
+- Add model and feature registries, experiment tracking, and automated canary/champion-challenger promotion for new models.
+- Implement data quality validation, point-in-time joins, and offline backfills to evolve the feature service toward a full feature store.
+- Harden security: cluster network policies, secret management (e.g., External Secrets Operator), vulnerability scanning, and TLS termination across services.
+- Expand testing depth with contract tests between services, load tests for the async pipeline, and chaos experiments for Redis/feature-store failure scenarios.
+
+---
+
+This documentation reflects the current production-style implementation and is intended to guide deployments, operations, and continued iteration of the Online Learning MLOps Platform.
