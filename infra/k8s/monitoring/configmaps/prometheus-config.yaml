@@ -17,27 +17,27 @@ data:
         static_configs:
           - targets: ['model-linear.ml-services.svc.cluster.local:8010']
         metrics_path: '/metrics'
-        scrape_interval: 60s
-        scrape_timeout: 10s
+        scrape_interval: 15s
+        scrape_timeout: 5s
 
       - job_name: 'ml-model-bagging'
         static_configs:
           - targets: ['model-bagging.ml-services.svc.cluster.local:8011']
         metrics_path: '/metrics'
-        scrape_interval: 60s
-        scrape_timeout: 10s
+        scrape_interval: 15s
+        scrape_timeout: 5s
 
       - job_name: 'ml-model-knn'
         static_configs:
           - targets: ['model-knn.ml-services.svc.cluster.local:8012']
         metrics_path: '/metrics'
-        scrape_interval: 60s
-        scrape_timeout: 10s
+        scrape_interval: 15s
+        scrape_timeout: 5s
 
       - job_name: 'ml-model-amfr'
         static_configs:
           - targets: ['model-amfr.ml-services.svc.cluster.local:8013']
         metrics_path: '/metrics'
-        scrape_interval: 60s
-        scrape_timeout: 10s
+        scrape_interval: 15s
+        scrape_timeout: 5s
 
