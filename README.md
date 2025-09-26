@@ -84,12 +84,13 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 - Container image: `r0d3r1ch25/ml-features:latest`.
 
 ### Model Services (`pipelines/model_service`, ClusterIP :8010-:8013 → container :8000)
-- Single codebase parameterised by `MODEL_NAME` to host four online River models: linear regression, ridge regression, KNN regressor, and AMF regressor.
-- Exposes `POST /train`, `POST /predict`, `POST /predict_learn`, `GET /model_metrics`, and `GET /metrics` (Prometheus format) plus a standard `GET /health` and `GET /info`.
+- Plugin-based architecture supporting multiple ML libraries with `BaseModel` interface and library-specific wrappers.
+- Currently hosts four River ML models: linear regression, KNN regressor, AMF regressor, and bagging regressor (3 ridge models).
+- Exposes `POST /predict_learn`, `POST /predict_many` (5-step recursive forecast), `GET /model_metrics`, and `GET /metrics` (Prometheus format) plus standard `GET /health` and `GET /info`.
 - `MetricsManager` maintains rolling MAE/MSE/RMSE/MAPE windows (5/10/20) and last prediction diagnostics per logical series.
-- Services are ClusterIP by design; access externally with `kubectl port-forward -n ml-services svc/model-linear 8010:8010` (and similar for ridge/knn/amfr).
-- Thorough request-level tests in `tests/test_requests.py` covering cold starts, feature agnosticism, validation errors, Prometheus formatting, and metric aggregation.
-- Container image: `r0d3r1ch25/ml-model:latest` reused across all four deployments.
+- Services are ClusterIP by design; access externally with `kubectl port-forward -n ml-services svc/model-linear 8010:8010` (and similar for bagging/knn/amfr).
+- Comprehensive tests in `tests/test_requests.py` covering predict_learn functionality, edge cases, validation errors, and Prometheus formatting.
+- Container image: `r0d3r1ch25/ml-model:latest` reused across all four deployments with different `MODEL_NAME` environment variables.
 
 ### Coinbase Service (`pipelines/coinbase_service`, LoadBalancer :8003)
 - Optional enrichment service pulling exchange rates from Coinbase and returning inverse XRP price alongside timestamp (America/Mexico_City timezone).
@@ -98,7 +99,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 - Container image: `r0d3r1ch25/ml-coinbase:latest`.
 
 ## Online Pipeline & Orchestration
-- `jobs/e2e_job/pipeline.py` is an asyncio-driven orchestrator that fetches an observation, requests features, and fans out `predict_learn` calls across all four model services concurrently. It logs structured progress, emits durations per model, and surfaces prediction errors inline.
+- `jobs/e2e_job/pipeline.py` is an asyncio-driven orchestrator that fetches an observation, requests features, and fans out `predict_learn` calls across all four model services (Linear, Bagging, KNN, AMFR) concurrently. It logs structured progress, emits durations per model, and surfaces prediction errors inline.
 - Container image `r0d3r1ch25/ml-e2e-job:latest` backs the CronWorkflow defined in `infra/workflows/v1/ml-pipeline-v1.yaml`.
 - CronWorkflow schedule: `* * * * *` (every minute) with `concurrencyPolicy: Forbid`, `successfulJobsHistoryLimit: 20`, and `failedJobsHistoryLimit: 5`. Adjust the cadence in the workflow manifest before applying if you do not need per-minute executions.
 - Workflow runs under the `argo` namespace; use the Argo CLI or UI to observe lineage, restart runs, or inspect pod logs.
@@ -210,18 +211,17 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 | Service | Port-forward command | Notes |
 |---------|----------------------|-------|
 | Linear Regression | `kubectl port-forward -n ml-services svc/model-linear 8010:8010` | Access API at `http://localhost:8010`. |
-| Ridge Regression  | `kubectl port-forward -n ml-services svc/model-ridge 8011:8011`  | Same API contract as linear. |
-| KNN Regressor     | `kubectl port-forward -n ml-services svc/model-knn 8012:8012`    | Same API contract as linear. |
-| AMF Regressor     | `kubectl port-forward -n ml-services svc/model-amfr 8013:8013`   | Same API contract as linear. |
+| Bagging Regressor | `kubectl port-forward -n ml-services svc/model-bagging 8011:8011` | 3 ridge models ensemble. |
+| KNN Regressor     | `kubectl port-forward -n ml-services svc/model-knn 8012:8012`    | k=5 neighbors. |
+| AMF Regressor     | `kubectl port-forward -n ml-services svc/model-amfr 8013:8013`   | Adaptive model forest. |
 
 Common endpoints once port-forwarded:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET    | `/health` | Quick readiness probe. |
 | GET    | `/info`   | Returns model metadata, available model types, and configuration. |
-| POST   | `/train`  | Learns from `{features, target}` while opportunistically logging predictions for metrics. |
-| POST   | `/predict` | Returns single-step forecast in `{"forecast": [{"value": ...}]}` format. |
 | POST   | `/predict_learn` | Predicts then updates the model and rolling metrics in one call. |
+| POST   | `/predict_many` | Returns 5-step recursive forecast with lag feature shifting. |
 | GET    | `/model_metrics` | JSON summary containing counts, rolling metrics, last prediction, and model info. |
 | GET    | `/metrics` | Prometheus-formatted gauges and counters ready for scraping. |
 

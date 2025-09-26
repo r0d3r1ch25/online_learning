@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import Dict, List
 from model_manager import ModelManager
 from metrics_manager import MetricsManager
+from models.river_models import get_river_models
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,10 +23,6 @@ FORECAST_HORIZON = 1
 # Models
 model_manager = ModelManager()
 metrics_manager = MetricsManager()
-
-class TrainRequest(BaseModel):
-    features: Dict[str, float]
-    target: float
 
 class PredictRequest(BaseModel):
     features: Dict[str, float]
@@ -46,43 +43,10 @@ def info():
         "forecast_horizon": FORECAST_HORIZON,
         "feature_agnostic": True,
         "regression_model": True,
-        "available_models": ["linear_regression", "knn_regressor", "amf_regressor", "bagging_regressor"]
+        "available_models": list(get_river_models().keys())
     }
 
-@app.post("/train")
-def train(request: TrainRequest):
-    """Train model with target and generate metrics"""
-    try:
-        # Make prediction before training for metrics
-        try:
-            pred = model_manager.predict(request.features)
-            metrics_manager.add("default", request.target, pred)
-        except Exception as e:
-            # First few observations may not have enough data for prediction
-            logging.info(f"Prediction failed during training (cold start): {e}")
-            
-        # Train model
-        model_manager.train(request.features, request.target)
-        
-        # Count successful training
-        if "default" not in metrics_manager.series_counts:
-            metrics_manager.series_counts["default"] = 0
-        metrics_manager.series_counts["default"] += 1
-        
-        return {"message": "Model trained successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/predict")
-def predict(request: PredictRequest):
-    """Predict using regression model"""
-    try:
-        # Get single-step forecast from regression model
-        forecast_value = model_manager.predict(request.features)
-        forecast = [{"value": forecast_value}]
-        return {"forecast": forecast}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict_learn")
 def predict_learn(request: PredictLearnRequest):

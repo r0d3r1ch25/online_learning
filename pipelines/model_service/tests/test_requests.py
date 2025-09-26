@@ -25,81 +25,7 @@ def test_info():
     assert data["regression_model"] == True
     assert "River" in data["model_name"]
 
-def test_train_valid_features():
-    payload = {
-        "features": {"in_1": 125.0, "in_2": 120.0, "in_3": 115.0},
-        "target": 130.0
-    }
-    response = client.post("/train", json=payload)
-    assert response.status_code == 200
-    data = response.json()
-    assert "message" in data
-    assert "successfully" in data["message"]
 
-def test_train_missing_features():
-    """Test training with incomplete features - should use imputation"""
-    payload = {
-        "features": {"in_1": 125.0},  # Missing in_2, in_3, etc.
-        "target": 130.0
-    }
-    response = client.post("/train", json=payload)
-    assert response.status_code == 200
-
-def test_train_unknown_features():
-    """Test training with any feature names - feature agnostic"""
-    payload = {
-        "features": {"in_1": 125.0, "unknown_feature": 999.0, "lag_1": 100.0},
-        "target": 130.0
-    }
-    response = client.post("/train", json=payload)
-    assert response.status_code == 200
-    # River accepts any features - no warnings expected
-
-def test_train_invalid_payload():
-    """Test training with invalid payload structure"""
-    payload = {"invalid": "data"}
-    response = client.post("/train", json=payload)
-    assert response.status_code == 422  # Validation error
-
-def test_predict_valid_features():
-    # Train with some observations
-    train_data = [
-        ({"in_1": 125.0, "in_2": 120.0, "in_3": 115.0}, 130.0),
-        ({"in_1": 130.0, "in_2": 125.0, "in_3": 120.0}, 135.0),
-        ({"in_1": 135.0, "in_2": 130.0, "in_3": 125.0}, 140.0)
-    ]
-    
-    for features, target in train_data:
-        train_payload = {"features": features, "target": target}
-        client.post("/train", json=train_payload)
-    
-    # Then predict
-    payload = {"features": {"in_1": 140.0, "in_2": 135.0, "in_3": 130.0}}
-    response = client.post("/predict", json=payload)
-    assert response.status_code == 200
-    data = response.json()
-    assert "forecast" in data
-    assert len(data["forecast"]) == 1
-    for item in data["forecast"]:
-        assert "value" in item
-        assert isinstance(item["value"], (int, float))
-
-def test_predict_empty_features():
-    """Test prediction with empty features - should use imputation"""
-    payload = {"features": {}}
-    response = client.post("/predict", json=payload)
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["forecast"]) == 1
-
-def test_predict_unknown_features():
-    """Test prediction with any features - feature agnostic"""
-    payload = {
-        "features": {"in_1": 130.0, "bad_feature": 999.0, "lag_5": 100.0}
-    }
-    response = client.post("/predict", json=payload)
-    assert response.status_code == 200
-    # River accepts any features - no warnings expected
 
 def test_predict_learn_valid():
     payload = {
@@ -142,51 +68,21 @@ def test_model_metrics():
     data = response.json()
     assert isinstance(data, dict)
 
-def test_feature_validation_edge_cases():
-    """Test edge cases in feature validation"""
+def test_predict_learn_edge_cases():
+    """Test predict_learn with edge cases"""
     # Test with negative values
     payload = {
         "features": {"in_1": -100.0, "in_2": 0.0, "in_3": 999999.9},
         "target": 50.0
     }
-    response = client.post("/train", json=payload)
-    assert response.status_code == 200
-    
-    # Test prediction with same extreme values
-    pred_payload = {"features": {"in_1": -100.0, "in_2": 0.0, "in_3": 999999.9}}
-    response = client.post("/predict", json=pred_payload)
-    assert response.status_code == 200
-
-def test_full_12_inputs():
-    """Test using all 12 input features"""
-    # Train with all 12 inputs
-    train_payload = {
-        "features": {
-            "in_1": 125.0, "in_2": 120.0, "in_3": 115.0, "in_4": 110.0,
-            "in_5": 105.0, "in_6": 100.0, "in_7": 95.0, "in_8": 90.0,
-            "in_9": 85.0, "in_10": 80.0, "in_11": 75.0, "in_12": 70.0
-        },
-        "target": 130.0
-    }
-    response = client.post("/train", json=train_payload)
-    assert response.status_code == 200
-    
-    # Predict with all 12 inputs
-    pred_payload = {
-        "features": {
-            "in_1": 130.0, "in_2": 125.0, "in_3": 120.0, "in_4": 115.0,
-            "in_5": 110.0, "in_6": 105.0, "in_7": 100.0, "in_8": 95.0,
-            "in_9": 90.0, "in_10": 85.0, "in_11": 80.0, "in_12": 75.0
-        }
-    }
-    response = client.post("/predict", json=pred_payload)
+    response = client.post("/predict_learn", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert "forecast" in data
-    assert len(data["forecast"]) == 1
-    
-    # Predict and learn with all 12 inputs
-    pred_learn_payload = {
+    assert "prediction" in data
+
+def test_predict_learn_12_inputs():
+    """Test predict_learn with all 12 input features"""
+    payload = {
         "features": {
             "in_1": 135.0, "in_2": 130.0, "in_3": 125.0, "in_4": 120.0,
             "in_5": 115.0, "in_6": 110.0, "in_7": 105.0, "in_8": 100.0,
@@ -194,7 +90,7 @@ def test_full_12_inputs():
         },
         "target": 140.0
     }
-    response = client.post("/predict_learn", json=pred_learn_payload)
+    response = client.post("/predict_learn", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert "prediction" in data
