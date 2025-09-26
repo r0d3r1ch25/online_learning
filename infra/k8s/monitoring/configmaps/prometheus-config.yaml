@@ -20,9 +20,9 @@ data:
         scrape_interval: 60s
         scrape_timeout: 10s
 
-      - job_name: 'ml-model-ridge'
+      - job_name: 'ml-model-bagging'
         static_configs:
-          - targets: ['model-ridge.ml-services.svc.cluster.local:8011']
+          - targets: ['model-bagging.ml-services.svc.cluster.local:8011']
         metrics_path: '/metrics'
         scrape_interval: 60s
         scrape_timeout: 10s
@@ -41,9 +41,3 @@ data:
         scrape_interval: 60s
         scrape_timeout: 10s
 
-      - job_name: 'ml-model-neural'
-        static_configs:
-          - targets: ['model-neural.ml-services.svc.cluster.local:8014']
-        metrics_path: '/metrics'
-        scrape_interval: 60s
-        scrape_timeout: 10s

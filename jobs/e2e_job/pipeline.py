@@ -17,10 +17,9 @@ FEATURE_URL = "http://feature-service.ml-services.svc.cluster.local:8001"
 
 MODEL_SERVICES = [
     {"name": "Linear", "url": "http://model-linear.ml-services.svc.cluster.local:8010"},
-    {"name": "Ridge", "url": "http://model-ridge.ml-services.svc.cluster.local:8011"},
+    {"name": "Bagging", "url": "http://model-bagging.ml-services.svc.cluster.local:8011"},
     {"name": "KNN", "url": "http://model-knn.ml-services.svc.cluster.local:8012"},
-    {"name": "AMFR", "url": "http://model-amfr.ml-services.svc.cluster.local:8013"},
-    {"name": "Neural", "url": "http://model-neural.ml-services.svc.cluster.local:8014"}
+    {"name": "AMFR", "url": "http://model-amfr.ml-services.svc.cluster.local:8013"}
 ]
 
 def log(message):
@@ -86,7 +85,7 @@ async def main():
                 response.raise_for_status()
                 feature_result = await response.json()
             
-            # Step 3: Call all 5 models in parallel
+            # Step 3: Call all 4 models in parallel
             tasks = [
                 call_model_service(session, model_info, feature_result['features'], feature_result['target'])
                 for model_info in MODEL_SERVICES
@@ -98,10 +97,10 @@ async def main():
         duration = (end_time - start_time).total_seconds()
         
         log("=== E2E PIPELINE START ===")
-        log(f"[1/5] SUCCESS: Ingestion - {observation}")
+        log(f"[1/4] SUCCESS: Ingestion - {observation}")
         
         features = feature_result['features']
-        log(f"[2/5] SUCCESS: Features extracted: {len(features)} inputs, {feature_result.get('available_lags', 0)} lags available")
+        log(f"[2/4] SUCCESS: Features extracted: {len(features)} inputs, {feature_result.get('available_lags', 0)} lags available")
         log("  Feature breakdown:")
         # Log all in_X features (X from 1 to N_LAGS)
         num_features = len([k for k in features.keys() if k.startswith('in_')])
@@ -109,7 +108,7 @@ async def main():
             key = f"in_{i}"
             log(f"    {key}: {features.get(key, 0.0)}")
         
-        log("[3/5] SUCCESS: Model predictions (parallel execution):")
+        log("[3/4] SUCCESS: Model predictions (parallel execution):")
         
         # Column-by-column approach for better readability
         metrics_columns = [
@@ -126,7 +125,7 @@ async def main():
                 values.append(f"{result['model']}: {value}")
             log(f"  {col_name:<10}: {' | '.join(values)}")
         log("")
-        log(f"[5/5] SUCCESS: All 5 models trained in parallel")
+        log(f"[4/4] SUCCESS: All 4 models trained in parallel")
         log(f"=== E2E PIPELINE COMPLETE: {end_time} | Duration: {duration:.3f}s ===")
         
     except Exception as e:

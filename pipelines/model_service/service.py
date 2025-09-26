@@ -46,7 +46,7 @@ def info():
         "forecast_horizon": FORECAST_HORIZON,
         "feature_agnostic": True,
         "regression_model": True,
-        "available_models": ["linear_regression", "ridge_regression", "knn_regressor", "amf_regressor", "nn_regressor"]
+        "available_models": ["linear_regression", "knn_regressor", "amf_regressor", "bagging_regressor"]
     }
 
 @app.post("/train")

@@ -8,18 +8,14 @@ class ModelManager:
         self.forecast_horizon = 1  # Single-step prediction only
         model_name = os.getenv("MODEL_NAME", "linear_regression")
         
-        # Available models: linear_regression, ridge_regression, knn_regressor, amf_regressor, nn_regressor
+        # Available models: linear_regression, knn_regressor, amf_regressor, bagging_regressor
         models = {
             "linear_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(),
-            "ridge_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(l2=1.0),
             "knn_regressor": preprocessing.StandardScaler() | neighbors.KNNRegressor(n_neighbors=5),
             "amf_regressor": preprocessing.StandardScaler() | forest.AMFRegressor(),
-            "nn_regressor": preprocessing.StandardScaler() | nn.MLPRegressor(
-                hidden_dims=(5,),
-                activations=(
-                    nn.activations.ReLU,
-                    nn.activations.Identity
-                )
+            "bagging_regressor": preprocessing.StandardScaler() | ensemble.BaggingRegressor(
+                model=linear_model.LinearRegression(l2=1.0),
+                n_models=3
             )
         }
         
