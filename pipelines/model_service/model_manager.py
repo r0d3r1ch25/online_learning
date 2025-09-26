@@ -1,6 +1,6 @@
 
 
-from river import linear_model, tree, ensemble, preprocessing, neighbors, forest
+from river import linear_model, tree, ensemble, preprocessing, neighbors, forest, neural_net as nn
 import os
 
 class ModelManager:
@@ -8,12 +8,19 @@ class ModelManager:
         self.forecast_horizon = 1  # Single-step prediction only
         model_name = os.getenv("MODEL_NAME", "linear_regression")
         
-        # Available models: linear_regression, ridge_regression, knn_regressor, amf_regressor
+        # Available models: linear_regression, ridge_regression, knn_regressor, amf_regressor, nn_regressor
         models = {
             "linear_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(),
             "ridge_regression": preprocessing.StandardScaler() | linear_model.LinearRegression(l2=1.0),
             "knn_regressor": preprocessing.StandardScaler() | neighbors.KNNRegressor(n_neighbors=5),
-            "amf_regressor": preprocessing.StandardScaler() | forest.AMFRegressor()
+            "amf_regressor": preprocessing.StandardScaler() | forest.AMFRegressor(),
+            "nn_regressor": preprocessing.StandardScaler() | nn.MLPRegressor(
+                hidden_dims=(5,),
+                activations=(
+                    nn.activations.ReLU,
+                    nn.activations.Identity
+                )
+            )
         }
         
         self.model = models.get(model_name, models["linear_regression"])

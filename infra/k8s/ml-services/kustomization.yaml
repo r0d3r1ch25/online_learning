@@ -11,6 +11,7 @@ resources:
   - deployments/model-ridge.yaml
   - deployments/model-knn.yaml
   - deployments/model-amfr.yaml
+  - deployments/model-neural.yaml
   - deployments/coinbase-deployment.yaml
   - deployments/redis-deployment.yaml
   - services/ingestion-service.yaml
@@ -19,6 +20,7 @@ resources:
   - services/model-ridge.yaml
   - services/model-knn.yaml
   - services/model-amfr.yaml
+  - services/model-neural.yaml
   - services/coinbase-service.yaml
   - services/redis-service.yaml
 
