@@ -49,10 +49,14 @@
             },
             "lineInterpolation": "linear",
             "lineStyle": {
-              "fill": "solid"
+              "dash": [
+                3,
+                3
+              ],
+              "fill": "dash"
             },
-            "lineWidth": 2,
-            "pointSize": 3,
+            "lineWidth": 1.5,
+            "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -85,13 +89,28 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Actual"
+              "options": "ml_model_last_actual"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mean"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "#06e2ee",
+                  "fixedColor": "red",
                   "mode": "fixed"
                 }
               }
@@ -100,15 +119,17 @@
         ]
       },
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 12,
         "x": 0,
         "y": 0
       },
-      "id": 3,
+      "id": 5,
       "options": {
         "legend": {
-          "calcs": [],
+          "calcs": [
+            "last"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -125,8 +146,9 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "ml_model_last_actual{model=\"linear_regression\"}",
+          "expr": "avg(ml_model_last_prediction{model=~\"knn_regressor|amf_regressor\"})",
           "instant": false,
+          "legendFormat": "Ensemble",
           "range": true,
           "refId": "A"
         },
@@ -136,27 +158,16 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "ml_model_last_prediction",
+          "expr": "ml_model_last_actual{model=\"linear_regression\"}",
           "hide": false,
           "instant": false,
+          "legendFormat": "Actual",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Actuals",
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Actual",
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "mean"
-            },
-            "replaceFields": true
-          }
-        }
-      ],
+      "title": "Predictions",
+      "transformations": [],
       "type": "timeseries"
     },
     {
@@ -192,7 +203,7 @@
               ],
               "fill": "dash"
             },
-            "lineWidth": 1,
+            "lineWidth": 1.5,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -222,15 +233,31 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ml_model_last_actual"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 12,
         "x": 12,
         "y": 0
       },
-      "id": 4,
+      "id": 6,
       "options": {
         "legend": {
           "calcs": [],
@@ -254,11 +281,27 @@
           "instant": false,
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "ml_model_last_actual{model=\"linear_regression\"}",
+          "hide": false,
+          "instant": false,
+          "range": true,
+          "refId": "B"
         }
       ],
       "title": "Predictions",
       "transformations": [
         {
+          "filter": {
+            "id": "byRefId",
+            "options": "A"
+          },
           "id": "labelsToFields",
           "options": {
             "keepLabels": [
@@ -266,6 +309,10 @@
             ],
             "valueLabel": "model"
           }
+        },
+        {
+          "id": "labelsToFields",
+          "options": {}
         }
       ],
       "type": "timeseries"
@@ -329,10 +376,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 10
       },
       "id": 1,
       "options": {
@@ -433,10 +480,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 10
       },
       "id": 2,
       "options": {
@@ -479,7 +526,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "5s",
+  "refresh": "30s",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [],
@@ -487,13 +534,13 @@
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Model Metrics",
   "uid": "b1adc83f-9ac6-45e5-85f5-df082335cd3c",
-  "version": 6,
+  "version": 16,
   "weekStart": ""
 }

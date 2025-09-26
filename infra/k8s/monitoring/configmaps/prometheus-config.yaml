@@ -40,3 +40,10 @@ data:
         metrics_path: '/metrics'
         scrape_interval: 60s
         scrape_timeout: 10s
+
+      - job_name: 'ml-model-neural'
+        static_configs:
+          - targets: ['model-neural.ml-services.svc.cluster.local:8014']
+        metrics_path: '/metrics'
+        scrape_interval: 60s
+        scrape_timeout: 10s
