@@ -5,7 +5,7 @@ metadata:
   labels:
     app: model-linear
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 8010
     targetPort: 8000

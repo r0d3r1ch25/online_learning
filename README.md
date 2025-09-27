@@ -3,7 +3,7 @@
 A production-style MLOps stack for near real-time time-series forecasting. The platform streams observations, engineers features with Redis-backed state, trains multiple River-based online models, and orchestrates the end-to-end workflow with Argo Workflows on Kubernetes. It packages microservices, infrastructure, observability, and automation so the system can be deployed, monitored, and iterated like a production environment.
 
 ## Key Capabilities
-- Real-time ingestion of 744 monthly observations plus live cryptocurrency enrichment via Coinbase.
+- Real-time ingestion of 744 monthly observations plus live cryptocurrency prices via integrated Coinbase API.
 - Feature service that materialises configurable lag features backed by Redis with automatic in-memory failover.
 - Four independent online regression services (Linear, Ridge, KNN, AMF) exposing prediction, online learning, and detailed rolling metrics.
 - Argo CronWorkflow that orchestrates ingestion → feature extraction → multi-model training in parallel using an asyncio job container.
@@ -20,8 +20,10 @@ A production-style MLOps stack for near real-time time-series forecasting. The p
                                        |
                                        v
 +-------------------+      +-------------------------+        +-------------------------------------------+
-| Ingestion Service | ---> | Feature Service + Redis | -----> | Model Services (Linear/Ridge/KNN/AMF)     |
-| FastAPI :8002     |      | FastAPI :8001           |        | FastAPI (ClusterIP :8010-:8013 -> :8000)  |
+| Ingestion Service | ---> | Feature Service + Redis | -----> | Model Services (Linear/Bagging/KNN/AMF)   |
+| FastAPI :8002     |      | FastAPI :8001           |        | FastAPI (ClusterIP :8010-:8013 → container :8000)  |
+| /next (CSV data)  |      |                         |        |                                           |
+| /next/{crypto}    |      |                         |        |                                           |
 +-------------------+      +-------------------------+        +-------------------------------------------+
           ^                           |                                        |
           |                           |                                        |
@@ -29,7 +31,7 @@ A production-style MLOps stack for near real-time time-series forecasting. The p
           |                    Redis feature cache                Prometheus scrapes /metrics endpoints
           |                  (ml-services namespace)                      Grafana visualises metrics
           |
-          +---- Coinbase Service :8003 (optional market signal)
+          +---- Coinbase API (live crypto prices)
 
 Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo components live in the argo namespace, and all ML services plus Redis reside in ml-services.
 ```
@@ -60,7 +62,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 │       ├── Dockerfile                # Non-root job image
 │       └── tests/                    # Lightweight unit tests for job code
 ├── pipelines/
-│   ├── coinbase_service/             # External exchange-rate streaming service
+
 │   ├── feature_service/              # Lag feature computation + Redis integration
 │   ├── ingestion_service/            # Dataset streaming API
 │   └── model_service/                # Online ML API (replicated for each model type)
@@ -71,8 +73,9 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 
 ### Ingestion Service (`pipelines/ingestion_service`, LoadBalancer :8002)
 - Streams `data.csv` (744 monthly observations) one record at a time with stateful iteration and reset.
-- FastAPI application exposing `GET /next`, `POST /reset`, `GET /status`, and `GET /health`.
-- Backed by Pandas for CSV management; no external dependencies beyond bundled data.
+- FastAPI application exposing `GET /next`, `GET /next/{crypto}`, `POST /reset`, `GET /status`, and `GET /health`.
+- Dynamic crypto endpoint: `GET /next/BTC`, `GET /next/XRP`, etc. fetch live prices from Coinbase API in standard format.
+- Backed by Pandas for CSV management and aiohttp for external API calls.
 - Tested with `pytest` via `TestClient` (`pipelines/ingestion_service/tests/test_ingestion.py`).
 - Container image: `r0d3r1ch25/ml-ingestion:latest` built automatically by GitHub Actions.
 
@@ -92,11 +95,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 - Comprehensive tests in `tests/test_requests.py` covering predict_learn functionality, edge cases, validation errors, and Prometheus formatting.
 - Container image: `r0d3r1ch25/ml-model:latest` reused across all four deployments with different `MODEL_NAME` environment variables.
 
-### Coinbase Service (`pipelines/coinbase_service`, LoadBalancer :8003)
-- Optional enrichment service pulling exchange rates from Coinbase and returning inverse XRP price alongside timestamp (America/Mexico_City timezone).
-- Useful for injecting live signals into the pipeline or for validating external API integrations within the cluster.
-- Endpoints: `GET /health`, `GET /next`. Simple unit test at `tests/test_health.py`.
-- Container image: `r0d3r1ch25/ml-coinbase:latest`.
+
 
 ## Online Pipeline & Orchestration
 - `jobs/e2e_job/pipeline.py` is an asyncio-driven orchestrator that fetches an observation, requests features, and fans out `predict_learn` calls across all four model services (Linear, Bagging, KNN, AMFR) concurrently. It logs structured progress, emits durations per model, and surfaces prediction errors inline.
@@ -164,9 +163,8 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
    ```
 5. **Access services**:
    - Feature service: `http://localhost:8001/health`
-   - Ingestion service: `http://localhost:8002/next`
-   - Coinbase service: `http://localhost:8003/next`
-   - Model services: port-forward as needed, e.g. `kubectl port-forward -n ml-services svc/model-linear 8010:8010`
+   - Ingestion service: `http://localhost:8002/next` (CSV data) or `http://localhost:8002/next/BTC` (crypto)
+   - Model services: `kubectl port-forward -n ml-services svc/model-linear 8010:8010` (and similar for bagging/knn/amfr)
    - Grafana: `http://localhost:3000` (default `admin/admin`)
    - Prometheus: `http://localhost:9090`
    - Loki API: `http://localhost:3100`
@@ -197,6 +195,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 |--------|----------|-------------|
 | GET    | `/health` | Returns service status and dataset size. |
 | GET    | `/next`   | Streams next observation; returns 204 when the dataset is exhausted. |
+| GET    | `/next/{crypto}` | Fetches live crypto price from Coinbase API (e.g., `/next/BTC`, `/next/XRP`). |
 | POST   | `/reset`  | Resets stream cursor to the beginning of the dataset. |
 | GET    | `/status` | Reports current index, remaining observations, and completion flag. |
 
@@ -225,11 +224,7 @@ Common endpoints once port-forwarded:
 | GET    | `/model_metrics` | JSON summary containing counts, rolling metrics, last prediction, and model info. |
 | GET    | `/metrics` | Prometheus-formatted gauges and counters ready for scraping. |
 
-### Coinbase Service (`http://<host>:8003`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET    | `/health` | Health probe. |
-| GET    | `/next`   | Returns latest inverse XRP rate with timestamp. |
+
 
 ## Troubleshooting & Operations
 - **Redis fallback**: Check feature-service logs for `REDIS CONNECTED` or `REDIS UNAVAILABLE` messages. Use `kubectl exec -n ml-services deployment/redis -- redis-cli LRANGE "series:default:values" 0 -1` to inspect stored lags.

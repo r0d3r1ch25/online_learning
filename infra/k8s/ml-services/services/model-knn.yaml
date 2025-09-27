@@ -5,7 +5,7 @@ metadata:
   labels:
     app: model-knn
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 8012
     targetPort: 8000

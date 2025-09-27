@@ -53,7 +53,7 @@ def predict_many(request: PredictRequest):
     """Predict 5 steps ahead recursively"""
     try:
         predictions = model_manager.predict_many(request.features, steps=5)
-        forecast = [{"step": i+1, "value": pred} for i, pred in enumerate(predictions)]
+        forecast = [{"step": i+1, "value": round(pred, 6)} for i, pred in enumerate(predictions)]
         return {"forecast": forecast}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

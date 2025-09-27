@@ -131,26 +131,28 @@ async def main():
         log(f"[4/4] SUCCESS: All 4 models trained in parallel")
         log(f"=== E2E PIPELINE COMPLETE: {end_time} | Duration: {duration:.3f}s ===")
         
-        # Test predict_many endpoint with verbose logging
-        log("\n=== TESTING PREDICT_MANY ENDPOINT ===")
-        try:
-            # Use linear model for predict_many test
-            async with session.post(
-                f"{MODEL_SERVICES[0]['url']}/predict_many",
-                json={"features": feature_result['features']},
-                timeout=15
-            ) as response:
-                response.raise_for_status()
-                forecast_result = await response.json()
-            
-            log(f"PREDICT_MANY SUCCESS: {MODEL_SERVICES[0]['name']} model 5-step forecast:")
-            for step_data in forecast_result['forecast']:
-                log(f"  Step {step_data['step']}: {step_data['value']:.4f}")
-            log("=== PREDICT_MANY TEST COMPLETE ===")
-            
-        except Exception as e:
-            log(f"PREDICT_MANY ERROR: {e}")
-            log("=== PREDICT_MANY TEST FAILED ===")
+    # Test predict_many endpoint with new session
+    log("\n=== TESTING PREDICT_MANY ENDPOINT ===")
+    try:
+        async with aiohttp.ClientSession() as test_session:
+            for model_info in MODEL_SERVICES:
+                async with test_session.post(
+                    f"{model_info['url']}/predict_many",
+                    json={"features": feature_result['features']},
+                    timeout=15
+                ) as response:
+                    response.raise_for_status()
+                    forecast_result = await response.json()
+                
+                log(f"PREDICT_MANY SUCCESS: {model_info['name']} model 5-step forecast:")
+                for step_data in forecast_result['forecast']:
+                    log(f"  Step {step_data['step']}: {step_data['value']}")
+        
+        log("=== PREDICT_MANY TEST COMPLETE ===")
+        
+    except Exception as e:
+        log(f"PREDICT_MANY ERROR: {e}")
+        log("=== PREDICT_MANY TEST FAILED ===")
         
     except Exception as e:
         log(f"ERROR: Pipeline failed: {e}")
