@@ -106,7 +106,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 ## Infrastructure & Deployment Model
 - Lightweight Kubernetes provided by `k3d`. `make cluster-up` provisions a cluster with LoadBalancer ports for FastAPI services, Argo UI (2746), Grafana (3000), Prometheus (9090), and Loki (3100).
 - Deployments and services managed with Kustomize overlays at `infra/k8s`. Namespaces:
-  - `ml-services`: ingestion, feature, model, coinbase microservices plus Redis.
+  - `ml-services`: ingestion, feature, model microservices plus Redis.
   - `argo`: workflow-controller and Argo server (using upstream quick start manifest).
   - `monitoring`: Prometheus, Grafana, Loki, Promtail with cross-namespace scraping configuration.
 - Every deployment defines resource requests/limits, liveness/readiness probes, environment-driven configuration (e.g., `N_LAGS`, `MODEL_NAME`), and non-root security contexts.
