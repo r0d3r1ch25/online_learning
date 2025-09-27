@@ -86,7 +86,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 ### Model Services (`pipelines/model_service`, ClusterIP :8010-:8013 → container :8000)
 - Plugin-based architecture supporting multiple ML libraries with `BaseModel` interface and library-specific wrappers.
 - Currently hosts four River ML models: linear regression, KNN regressor, AMF regressor, and bagging regressor (3 ridge models).
-- Exposes `POST /predict_learn`, `POST /predict_many` (5-step recursive forecast), `GET /model_metrics`, and `GET /metrics` (Prometheus format) plus standard `GET /health` and `GET /info`.
+- Exposes `POST /predict_learn`, `POST /predict_many` (5-step recursive forecast), `GET /model_metrics`, and `GET /metrics` (Prometheus format) plus standard `GET /health`.
 - `MetricsManager` maintains rolling MAE/MSE/RMSE/MAPE windows (5/10/20) and last prediction diagnostics per logical series.
 - Services are ClusterIP by design; access externally with `kubectl port-forward -n ml-services svc/model-linear 8010:8010` (and similar for bagging/knn/amfr).
 - Comprehensive tests in `tests/test_requests.py` covering predict_learn functionality, edge cases, validation errors, and Prometheus formatting.
@@ -100,7 +100,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 
 ## Online Pipeline & Orchestration
 - `jobs/e2e_job/pipeline.py` is an asyncio-driven orchestrator that fetches an observation, requests features, and fans out `predict_learn` calls across all four model services (Linear, Bagging, KNN, AMFR) concurrently. It logs structured progress, emits durations per model, and surfaces prediction errors inline.
-- Container image `r0d3r1ch25/ml-e2e-job:latest` backs the CronWorkflow defined in `infra/workflows/v1/ml-pipeline-v1.yaml`.
+- Container image `r0d3r1ch25/ml-e2e-job:latest` backs the CronWorkflow defined in `infra/argo/workflows/v1/ml-pipeline-v1.yaml`.
 - CronWorkflow schedule: `* * * * *` (every minute) with `concurrencyPolicy: Forbid`, `successfulJobsHistoryLimit: 20`, and `failedJobsHistoryLimit: 5`. Adjust the cadence in the workflow manifest before applying if you do not need per-minute executions.
 - Workflow runs under the `argo` namespace; use the Argo CLI or UI to observe lineage, restart runs, or inspect pod logs.
 
@@ -183,7 +183,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
   FEAT=$(echo "$OBS" | jq '{series_id: "manual", value: .target}' | curl -sX POST -H "Content-Type: application/json" --data-binary @- http://localhost:8001/add)
   curl -sX POST -H "Content-Type: application/json" --data "{\"features\": $(echo "$FEAT" | jq '.features'), \"target\": $(echo "$FEAT" | jq '.target')}" http://localhost:8010/predict_learn
   ```
-- **Inspect workflow runs**: `argo get ml-cron-v1 -n argo` or use the Argo UI to view DAGs, pod logs, and execution timelines.
+- **Inspect workflow runs**: `argo get cron-v1 -n argo` or use the Argo UI to view DAGs, pod logs, and execution timelines.
 - **Monitor metrics**: open Grafana and import `util/Model_Metrics_Dashboard.json`, or query Prometheus directly:
   - `ml_model_mae_10{model="ridge_regression"}`
   - `ml_model_predictions_total{series="default"}`
@@ -219,7 +219,7 @@ Common endpoints once port-forwarded:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET    | `/health` | Quick readiness probe. |
-| GET    | `/info`   | Returns model metadata, available model types, and configuration. |
+
 | POST   | `/predict_learn` | Predicts then updates the model and rolling metrics in one call. |
 | POST   | `/predict_many` | Returns 5-step recursive forecast with lag feature shifting. |
 | GET    | `/model_metrics` | JSON summary containing counts, rolling metrics, last prediction, and model info. |
@@ -234,7 +234,7 @@ Common endpoints once port-forwarded:
 ## Troubleshooting & Operations
 - **Redis fallback**: Check feature-service logs for `REDIS CONNECTED` or `REDIS UNAVAILABLE` messages. Use `kubectl exec -n ml-services deployment/redis -- redis-cli LRANGE "series:default:values" 0 -1` to inspect stored lags.
 - **External API rate limits**: Coinbase requests may fail if the remote API throttles traffic. The service surfaces HTTP 500 with the upstream error message; scale replicas or add caching as needed.
-- **Workflow noise**: The CronWorkflow runs every minute by default. Disable with `kubectl delete cronworkflow ml-cron-v1 -n argo` if you prefer manual triggers.
+- **Workflow noise**: The CronWorkflow runs every minute by default. Disable with `kubectl delete cronworkflow cron-v1 -n argo` if you prefer manual triggers.
 - **Certificate warnings**: The Argo server exposes HTTPS with self-signed certs. Use `--insecure-skip-tls-verify` flags or import the certificate for local trust during development.
 - **Resource pressure**: Update resource requests/limits in `infra/k8s/ml-services/deployments/*.yaml` and re-apply. k3d defaults are conservative; adjust for heavier loads.
 

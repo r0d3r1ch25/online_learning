@@ -4,7 +4,6 @@ from base_model import BaseModel
 
 class ModelManager:
     def __init__(self):
-        self.forecast_horizon = 1  # Single-step prediction only
         model_name = os.getenv("MODEL_NAME", "linear_regression")
         
         # Get all available models

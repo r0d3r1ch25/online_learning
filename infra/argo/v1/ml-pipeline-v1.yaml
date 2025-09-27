@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:
-  name: ml-cron-v1
+  name: cron-v1
   namespace: argo
 spec:
   schedule: "* * * * *"  # Every minute (standard 5-field cron format)

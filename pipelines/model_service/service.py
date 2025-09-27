@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import Dict, List
 from model_manager import ModelManager
 from metrics_manager import MetricsManager
-from models.river_models import get_river_models
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,10 +15,9 @@ logging.basicConfig(
     ]
 )
 
-app = FastAPI(title="Online ML API")
+app = FastAPI(title="Online-ML")
 
-# Configuration
-FORECAST_HORIZON = 1
+
 
 # Models
 model_manager = ModelManager()
@@ -35,16 +34,7 @@ class PredictLearnRequest(BaseModel):
 def health():
     return {"status": "ok", "model_loaded": model_manager.model is not None}
 
-@app.get("/info")
-def info():
-    return {
-        "model_name": f"River {model_manager.model_name.replace('_', ' ').title()}",
-        "model_version": "0.22.0",
-        "forecast_horizon": FORECAST_HORIZON,
-        "feature_agnostic": True,
-        "regression_model": True,
-        "available_models": list(get_river_models().keys())
-    }
+
 
 
 

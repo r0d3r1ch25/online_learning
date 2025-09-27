@@ -165,4 +165,3 @@ Temporary Items
 *.h5
 *.model
 data/
-# models/  # Commented out to allow code models/ directory

@@ -22,7 +22,7 @@ Online ML model service with pluggable architecture supporting multiple ML libra
 | Method | Endpoint | Description | Used By |
 |--------|----------|-------------|---------|
 | GET | `/health` | Health check | Kubernetes probes |
-| GET | `/info` | Model metadata | Manual inspection |
+
 | POST | `/predict_learn` | Predict then train | E2E pipeline |
 | POST | `/predict_many` | 5-step recursive forecast | Testing/validation |
 | GET | `/model_metrics` | Detailed performance metrics | E2E pipeline |
@@ -63,7 +63,7 @@ python3 -m pytest tests/ -v
 ```
 
 All tests pass (10/10) covering:
-- Health/info endpoints
+- Health endpoint
 - Predict_learn functionality
 - Edge cases and validation
 - Metrics endpoints

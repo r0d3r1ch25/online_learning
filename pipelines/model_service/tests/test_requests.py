@@ -13,17 +13,7 @@ def test_health():
     assert data["status"] == "ok"
     assert "model_loaded" in data
 
-def test_info():
-    response = client.get("/info")
-    assert response.status_code == 200
-    data = response.json()
-    assert "model_name" in data
-    assert "forecast_horizon" in data
-    assert "regression_model" in data
-    assert "available_models" in data
-    assert data["forecast_horizon"] == 1
-    assert data["regression_model"] == True
-    assert "River" in data["model_name"]
+
 
 
 

@@ -5,7 +5,7 @@ metadata:
   labels:
     app: model-amfr
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
   - port: 8013
     targetPort: 8000

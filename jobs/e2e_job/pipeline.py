@@ -101,12 +101,15 @@ async def main():
         
         features = feature_result['features']
         log(f"[2/4] SUCCESS: Features extracted: {len(features)} inputs, {feature_result.get('available_lags', 0)} lags available")
-        log("  Feature breakdown:")
-        # Log all in_X features (X from 1 to N_LAGS)
+        
+        # Create JSON-formatted feature breakdown in one line
+        feature_json = {}
         num_features = len([k for k in features.keys() if k.startswith('in_')])
         for i in range(1, num_features + 1):
             key = f"in_{i}"
-            log(f"    {key}: {features.get(key, 0.0)}")
+            feature_json[key] = features.get(key, 0.0)
+        
+        log(f"  Feature breakdown: {json.dumps(feature_json)}")
         
         log("[3/4] SUCCESS: Model predictions (parallel execution):")
         
@@ -127,6 +130,27 @@ async def main():
         log("")
         log(f"[4/4] SUCCESS: All 4 models trained in parallel")
         log(f"=== E2E PIPELINE COMPLETE: {end_time} | Duration: {duration:.3f}s ===")
+        
+        # Test predict_many endpoint with verbose logging
+        log("\n=== TESTING PREDICT_MANY ENDPOINT ===")
+        try:
+            # Use linear model for predict_many test
+            async with session.post(
+                f"{MODEL_SERVICES[0]['url']}/predict_many",
+                json={"features": feature_result['features']},
+                timeout=15
+            ) as response:
+                response.raise_for_status()
+                forecast_result = await response.json()
+            
+            log(f"PREDICT_MANY SUCCESS: {MODEL_SERVICES[0]['name']} model 5-step forecast:")
+            for step_data in forecast_result['forecast']:
+                log(f"  Step {step_data['step']}: {step_data['value']:.4f}")
+            log("=== PREDICT_MANY TEST COMPLETE ===")
+            
+        except Exception as e:
+            log(f"PREDICT_MANY ERROR: {e}")
+            log("=== PREDICT_MANY TEST FAILED ===")
         
     except Exception as e:
         log(f"ERROR: Pipeline failed: {e}")

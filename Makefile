@@ -10,6 +10,10 @@ cluster-up:
 		--port "8001:8001@loadbalancer" \
 		--port "8002:8002@loadbalancer" \
 		--port "8003:8003@loadbalancer" \
+		--port "8010:8010@loadbalancer" \
+		--port "8011:8011@loadbalancer" \
+		--port "8012:8012@loadbalancer" \
+		--port "8013:8013@loadbalancer" \
 		--port "2746:2746@loadbalancer" \
 		--port "3000:3000@loadbalancer" \
 		--port "9090:9090@loadbalancer" \
@@ -24,4 +28,4 @@ apply:
 
 # Start CronWorkflow (all 4 models in parallel)
 cron:
-	kubectl apply -f infra/workflows/v1/ml-pipeline-v1.yaml
+	kubectl apply -f infra/argo/workflows/v1/ml-pipeline-v1.yaml
