@@ -5,7 +5,8 @@ A production-style MLOps stack for near real-time time-series forecasting. The p
 ## Key Capabilities
 - Real-time ingestion of 744 monthly observations plus live cryptocurrency prices via integrated Coinbase API.
 - Feature service that materialises configurable lag features backed by Redis with automatic in-memory failover.
-- Four independent online regression services (Linear, Ridge, KNN, AMF) exposing prediction, online learning, and detailed rolling metrics.
+- Four independent online regression services (Linear, Bagging, KNN, AMF) exposing prediction, online learning, and detailed rolling metrics.
+- Feast feature store with TimescaleDB backend for both online and offline feature storage.
 - Argo CronWorkflow that orchestrates ingestion → feature extraction → multi-model training in parallel using an asyncio job container.
 - Kubernetes-native deployment with dedicated namespaces, resource requests/limits, k3d bootstrap automation, and manifests managed through Kustomize overlays.
 - Full observability stack (Prometheus, Grafana, Loki, Promtail) and GitHub Actions CI/CD pipelines that test, build, and publish non-root Docker images for every workload.
@@ -109,6 +110,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
   - `ml-services`: ingestion, feature, model microservices plus Redis.
   - `argo`: workflow-controller and Argo server (using upstream quick start manifest).
   - `monitoring`: Prometheus, Grafana, Loki, Promtail with cross-namespace scraping configuration.
+  - `feast`: Feast feature store and TimescaleDB for feature management.
 - Every deployment defines resource requests/limits, liveness/readiness probes, environment-driven configuration (e.g., `N_LAGS`, `MODEL_NAME`), and non-root security contexts.
 - Redis deployment (`infra/k8s/ml-services/deployments/redis-deployment.yaml`) offers persistence for lag buffers within the cluster lifetime; feature service automatically degrades gracefully if Redis is unreachable.
 - `Makefile` helpers:

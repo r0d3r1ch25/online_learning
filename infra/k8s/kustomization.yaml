@@ -5,5 +5,4 @@ resources:
   - ml-services
   - argo
   - monitoring
-  - timescale
   - feast

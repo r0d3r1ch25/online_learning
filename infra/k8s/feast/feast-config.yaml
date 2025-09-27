@@ -6,11 +6,20 @@ data:
   feature_store.yaml: |
     project: default
     registry:
-      registry_type: file
-      path: /feast/registry.db
+      registry_type: sql
+      path: postgresql://postgres:password@timescaledb:5432/mlops
     provider: local
     online_store:
-      type: redis
-      connection_string: redis:6379
+      type: postgres
+      host: timescaledb
+      port: 5432
+      database: mlops
+      user: postgres
+      password: password
     offline_store:
-      type: file
+      type: postgres
+      host: timescaledb
+      port: 5432
+      database: mlops
+      user: postgres
+      password: password

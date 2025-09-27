@@ -7,11 +7,9 @@ resources:
   - namespace.yaml
   - feast-config.yaml
   - deployments/feast-server.yaml
-  - deployments/redis.yaml
-  - deployments/minio.yaml
+  - deployments/timescale.yaml
   - services/feast-server.yaml
-  - services/redis.yaml
-  - services/minio.yaml
+  - services/timescale.yaml
 
 labels:
   - pairs:
