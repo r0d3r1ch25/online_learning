@@ -6,3 +6,4 @@ resources:
   - argo
   - monitoring
   - timescale
+  - feast
