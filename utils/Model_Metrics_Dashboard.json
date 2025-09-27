@@ -146,7 +146,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg(ml_model_last_prediction{model=~\"knn_regressor|amf_regressor\"})",
+          "expr": "avg(ml_model_last_prediction{model=~\"knn_regressor|amf_regressor|linear_regression\"})",
           "instant": false,
           "legendFormat": "Ensemble",
           "range": true,
@@ -439,7 +439,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 25,
+            "fillOpacity": 5,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -456,7 +456,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "normal"
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -541,6 +541,6 @@
   "timezone": "",
   "title": "Model Metrics",
   "uid": "b1adc83f-9ac6-45e5-85f5-df082335cd3c",
-  "version": 16,
+  "version": 1,
   "weekStart": ""
 }
