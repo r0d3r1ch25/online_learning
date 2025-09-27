@@ -28,4 +28,4 @@ apply:
 
 # Start CronWorkflow (all 4 models in parallel)
 cron:
-	kubectl apply -f infra/argo/workflows/v1/ml-pipeline-v1.yaml
+	kubectl apply -f infra/k8s/argo/workflows/v1/ml-pipeline-v1.yaml
