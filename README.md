@@ -55,7 +55,8 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 │   │   ├── ml-services/              # Deployments & services for Redis + microservices
 │   │   └── monitoring/               # Prometheus, Grafana, Loki, Promtail manifests
 │   ├── workflows/
-│   │   └── v1/ml-pipeline-v1.yaml    # CronWorkflow (every minute) running the end-to-end job
+│   │   ├── ml-pipeline-v1.yaml       # CronWorkflow (every minute) running the end-to-end job
+│   │   └── feast-test-job.yaml       # One-time Feast integration test job
 │   └── kustomization.yaml            # Root Kustomize entrypoint
 ├── jobs/
 │   └── e2e_job/
@@ -100,7 +101,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 
 ## Online Pipeline & Orchestration
 - `jobs/e2e_job/pipeline.py` is an asyncio-driven orchestrator that fetches an observation, requests features, and fans out `predict_learn` calls across all four model services (Linear, Bagging, KNN, AMFR) concurrently. It logs structured progress, emits durations per model, and surfaces prediction errors inline.
-- Container image `r0d3r1ch25/ml-e2e-job:latest` backs the CronWorkflow defined in `infra/argo/workflows/v1/ml-pipeline-v1.yaml`.
+- Container image `r0d3r1ch25/ml-e2e-job:latest` backs the CronWorkflow defined in `infra/k8s/argo/workflows/ml-pipeline-v1.yaml`.
 - CronWorkflow schedule: `* * * * *` (every minute) with `concurrencyPolicy: Forbid`, `successfulJobsHistoryLimit: 20`, and `failedJobsHistoryLimit: 5`. Adjust the cadence in the workflow manifest before applying if you do not need per-minute executions.
 - Workflow runs under the `argo` namespace; use the Argo CLI or UI to observe lineage, restart runs, or inspect pod logs.
 
@@ -116,7 +117,7 @@ Observability namespace runs Prometheus, Grafana, Loki, and Promtail. Argo compo
 - `Makefile` helpers:
   - `make cluster-up`: create the k3d cluster.
   - `make apply`: `kubectl apply -k infra/k8s/` (installs Argo, monitoring stack, and all services).
-  - `make cron`: apply the CronWorkflow from `infra/workflows/v1/ml-pipeline-v1.yaml`.
+  - `make cron`: apply the CronWorkflow from `infra/k8s/argo/workflows/ml-pipeline-v1.yaml`.
   - `make cluster-down`: delete the k3d cluster.
 
 ## Observability & Monitoring

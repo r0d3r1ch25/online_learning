@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: feast-test-
+  namespace: argo
+spec:
+  entrypoint: feast-test
+  templates:
+  - name: feast-test
+    container:
+      image: r0d3r1ch25/feast-test:latest
+      imagePullPolicy: Always
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "500m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop:
+          - ALL
+  restartPolicy: Never
+  activeDeadlineSeconds: 1800
