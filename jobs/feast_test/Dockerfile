@@ -17,14 +17,13 @@ RUN pip install --no-cache-dir \
     pandas \
     numpy
 
-# Copy test script
-COPY test_feast_timescale.py .
-
 # Run as non-root user
 RUN useradd -m -u 1000 testuser
-USER testuser
 
-# Set working directory to user home
+# Copy test script to user home
+COPY --chown=testuser:testuser test_feast_timescale.py /home/testuser/
+
+USER testuser
 WORKDIR /home/testuser
 
-CMD ["python", "/app/test_feast_timescale.py"]
+CMD ["python", "test_feast_timescale.py"]
