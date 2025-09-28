@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: timescaledb-init
+  labels:
+    app: timescaledb
+data:
+  01-init-timescaledb.sql: |
+    -- Initialize TimescaleDB extension
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
+    
+    -- Create tables for offline feature storage
+    CREATE TABLE IF NOT EXISTS user_features_offline (
+        user_id BIGINT,
+        feature_1 FLOAT,
+        feature_2 BIGINT,
+        feature_3 VARCHAR(50),
+        event_timestamp TIMESTAMPTZ
+    );
+    
+    CREATE TABLE IF NOT EXISTS product_features_offline (
+        product_id BIGINT,
+        price FLOAT,
+        category_id BIGINT,
+        event_timestamp TIMESTAMPTZ
+    );
+    
+    CREATE TABLE IF NOT EXISTS lag_features_offline (
+        series_id VARCHAR(50),
+        in_1 FLOAT,
+        in_2 FLOAT,
+        in_3 FLOAT,
+        in_4 FLOAT,
+        in_5 FLOAT,
+        event_timestamp TIMESTAMPTZ
+    );
+    
+    -- Create hypertables for time-series data
+    SELECT create_hypertable('user_features_offline', 'event_timestamp', if_not_exists => TRUE);
+    SELECT create_hypertable('product_features_offline', 'event_timestamp', if_not_exists => TRUE);
+    SELECT create_hypertable('lag_features_offline', 'event_timestamp', if_not_exists => TRUE);

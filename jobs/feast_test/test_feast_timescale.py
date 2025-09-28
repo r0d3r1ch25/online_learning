@@ -11,6 +11,7 @@ import sys
 from datetime import datetime, timedelta
 from feast import FeatureStore, Entity, FeatureView, Field
 from feast.types import Float32, Int64, String
+from feast.value_type import ValueType
 from feast.data_source import PushSource
 from feast.infra.offline_stores.contrib.postgres_offline_store.postgres_source import PostgreSQLSource
 
@@ -44,8 +45,10 @@ def test_timescale_connection():
         timescale_ext = cursor.fetchone()
         if timescale_ext:
             log("✅ TimescaleDB extension is installed")
+            # Reset connection after any previous errors
+            conn.rollback()
             try:
-                cursor.execute("SELECT timescaledb_version();")
+                cursor.execute("SELECT extversion FROM pg_extension WHERE extname = 'timescaledb';")
                 ts_version = cursor.fetchone()[0]
                 log(f"✅ TimescaleDB version: {ts_version}")
             except Exception as e:
@@ -140,12 +143,14 @@ def test_feast_comprehensive():
         log("Creating test entities...")
         user_entity = Entity(
             name="user_id",
-            description="User identifier for testing"
+            description="User identifier for testing",
+            value_type=ValueType.INT64
         )
         
         product_entity = Entity(
             name="product_id", 
-            description="Product identifier for testing"
+            description="Product identifier for testing",
+            value_type=ValueType.INT64
         )
         
         # Test 2: Create offline source
@@ -160,7 +165,7 @@ def test_feast_comprehensive():
         log("Creating push source...")
         push_source = PushSource(
             name="user_features_push_source",
-            batch_source=offline_source,
+            batch_source=offline_source
         )
         
         # Test 4: Create feature views
@@ -185,7 +190,14 @@ def test_feast_comprehensive():
                 Field(name="price", dtype=Float32, description="Product price"),
                 Field(name="category_id", dtype=Int64, description="Product category"),
             ],
-            source=PushSource(name="product_push_source"),
+            source=PushSource(
+                name="product_push_source",
+                batch_source=PostgreSQLSource(
+                    name="product_features_source",
+                    query="SELECT product_id, price, category_id, event_timestamp FROM product_features_offline",
+                    timestamp_field="event_timestamp"
+                )
+            ),
             ttl=timedelta(days=30),
             description="Product features for recommendations"
         )
@@ -203,7 +215,7 @@ def test_feast_comprehensive():
         log(f"✅ Registry contains {len(entities)} entities: {[e.name for e in entities]}")
         log(f"✅ Registry contains {len(feature_views)} feature views: {[fv.name for fv in feature_views]}")
         
-        # Test 7: Create offline data table and insert test data
+        # Test 7: Insert offline test data
         log("Setting up offline data...")
         conn = psycopg2.connect(
             host="timescaledb.feast.svc.cluster.local",
@@ -213,17 +225,6 @@ def test_feast_comprehensive():
             password="password"
         )
         cursor = conn.cursor()
-        
-        # Create offline table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS user_features_offline (
-                user_id BIGINT,
-                feature_1 FLOAT,
-                feature_2 BIGINT,
-                feature_3 VARCHAR(50),
-                event_timestamp TIMESTAMPTZ
-            );
-        """)
         
         # Insert offline test data
         offline_data = [
@@ -365,7 +366,8 @@ def test_feast_comprehensive():
         # Create lag features entity and feature view
         series_entity = Entity(
             name="series_id",
-            description="Time series identifier"
+            description="Time series identifier",
+            value_type=ValueType.STRING
         )
         
         lag_features_fv = FeatureView(
@@ -378,7 +380,14 @@ def test_feast_comprehensive():
                 Field(name="in_4", dtype=Float32, description="Lag 4 feature"),
                 Field(name="in_5", dtype=Float32, description="Lag 5 feature"),
             ],
-            source=PushSource(name="lag_features_push_source"),
+            source=PushSource(
+                name="lag_features_push_source",
+                batch_source=PostgreSQLSource(
+                    name="lag_features_source",
+                    query="SELECT series_id, in_1, in_2, in_3, in_4, in_5, event_timestamp FROM lag_features_offline",
+                    timestamp_field="event_timestamp"
+                )
+            ),
             ttl=timedelta(hours=1),
             description="Lag features for time series prediction"
         )

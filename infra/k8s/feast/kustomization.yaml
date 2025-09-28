@@ -6,6 +6,7 @@ namespace: feast
 resources:
   - namespace.yaml
   - feast-config.yaml
+  - configmaps/timescaledb-init.yaml
   - deployments/feast-server.yaml
   - deployments/timescale.yaml
   - services/feast-server.yaml
