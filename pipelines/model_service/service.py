@@ -54,6 +54,10 @@ def predict_many(request: PredictRequest):
     try:
         predictions = model_manager.predict_many(request.features, steps=5)
         forecast = [{"step": i+1, "value": round(pred, 6)} for i, pred in enumerate(predictions)]
+        
+        # Track predict_many usage in metrics
+        metrics_manager.add_predict_many("default", [pred for pred in predictions])
+        
         return {"forecast": forecast}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -135,6 +139,13 @@ def prometheus_metrics():
         prometheus_output.append(f"# HELP ml_model_last_error Last prediction error")
         prometheus_output.append(f"# TYPE ml_model_last_error gauge")
         prometheus_output.append(f'ml_model_last_error{{series="{series_id}",model="{model_manager.model_name}"}} {data.get("last_error", 0)}')
+        
+        # Forecast metrics - all 5 steps as comma-separated values
+        if "forecast" in data:
+            forecast_values = ",".join([str(val) for val in data["forecast"]])
+            prometheus_output.append(f"# HELP ml_model_forecast_steps 5-step forecast values (comma-separated)")
+            prometheus_output.append(f"# TYPE ml_model_forecast_steps gauge")
+            prometheus_output.append(f'ml_model_forecast_steps{{series="{series_id}",model="{model_manager.model_name}",values="{forecast_values}"}} 1')
     
     from fastapi import Response
     return Response(content="\n".join(prometheus_output) + "\n", media_type="text/plain")

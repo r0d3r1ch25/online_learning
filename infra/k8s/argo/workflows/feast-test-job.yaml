@@ -10,6 +10,8 @@ spec:
     container:
       image: r0d3r1ch25/feast-test:latest
       imagePullPolicy: Always
+      command: ["python"]
+      args: ["test_feast_timescale.py"]
       resources:
         requests:
           memory: "512Mi"

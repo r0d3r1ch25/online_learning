@@ -9,6 +9,7 @@ class MetricsManager:
             size: deque(maxlen=size) for size in ROLLING_WINDOW_SIZES
         })
         self.series_counts = defaultdict(int)
+        self.last_forecast = defaultdict(lambda: [0.0] * 5)
 
     def add(self, series_id, y_true, y_pred):
         y_true = float(y_true)
@@ -20,6 +21,10 @@ class MetricsManager:
         
         # Increment total count
         self.series_counts[series_id] += 1
+    
+    def add_predict_many(self, series_id, forecast_steps):
+        """Store last forecast values"""
+        self.last_forecast[series_id] = forecast_steps[:5]
 
     def _compute_metrics(self, data):
         """Compute MAE, MSE, RMSE, MAPE from (y_true, y_pred) pairs"""
@@ -70,6 +75,9 @@ class MetricsManager:
                     'last_actual': last_actual,
                     'last_error': abs(last_actual - last_pred)
                 })
+            
+            # Add forecast values
+            series_metrics['forecast'] = self.last_forecast[series_id]
             
             metrics[series_id] = series_metrics
         
