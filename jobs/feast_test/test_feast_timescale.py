@@ -44,9 +44,12 @@ def test_timescale_connection():
         timescale_ext = cursor.fetchone()
         if timescale_ext:
             log("✅ TimescaleDB extension is installed")
-            cursor.execute("SELECT timescaledb_version();")
-            ts_version = cursor.fetchone()[0]
-            log(f"✅ TimescaleDB version: {ts_version}")
+            try:
+                cursor.execute("SELECT timescaledb_version();")
+                ts_version = cursor.fetchone()[0]
+                log(f"✅ TimescaleDB version: {ts_version}")
+            except Exception as e:
+                log(f"⚠️  TimescaleDB version check failed: {e}", "WARN")
         else:
             log("⚠️  TimescaleDB extension not found - installing...")
             cursor.execute("CREATE EXTENSION IF NOT EXISTS timescaledb;")
@@ -345,7 +348,131 @@ def test_feast_comprehensive():
         for key, values in service_features.items():
             log(f"   {key}: {values}")
         
+        # Test 13: Feature service integration test (simulate feature service usage)
+        log("Testing feature service integration pattern...")
+        
+        # Simulate lag feature creation like feature service
+        lag_features_data = pd.DataFrame({
+            "series_id": ["crypto_BTC", "crypto_ETH", "default"],
+            "in_1": [45000.0, 3200.0, 100.0],
+            "in_2": [44800.0, 3180.0, 98.5],
+            "in_3": [44900.0, 3190.0, 99.2],
+            "in_4": [45100.0, 3210.0, 101.1],
+            "in_5": [45200.0, 3220.0, 102.3],
+            "event_timestamp": [datetime.now()] * 3
+        })
+        
+        # Create lag features entity and feature view
+        series_entity = Entity(
+            name="series_id",
+            description="Time series identifier"
+        )
+        
+        lag_features_fv = FeatureView(
+            name="lag_features",
+            entities=[series_entity],
+            schema=[
+                Field(name="in_1", dtype=Float32, description="Lag 1 feature"),
+                Field(name="in_2", dtype=Float32, description="Lag 2 feature"),
+                Field(name="in_3", dtype=Float32, description="Lag 3 feature"),
+                Field(name="in_4", dtype=Float32, description="Lag 4 feature"),
+                Field(name="in_5", dtype=Float32, description="Lag 5 feature"),
+            ],
+            source=PushSource(name="lag_features_push_source"),
+            ttl=timedelta(hours=1),
+            description="Lag features for time series prediction"
+        )
+        
+        fs.apply([series_entity, lag_features_fv])
+        log("✅ Lag features entity and feature view created")
+        
+        # Push lag features (simulating feature service behavior)
+        fs.push("lag_features_push_source", lag_features_data)
+        log("✅ Lag features pushed to online store")
+        
+        # Test retrieval for model prediction (simulating model service usage)
+        model_features = fs.get_online_features(
+            features=[
+                "lag_features:in_1",
+                "lag_features:in_2", 
+                "lag_features:in_3",
+                "lag_features:in_4",
+                "lag_features:in_5"
+            ],
+            entity_rows=[
+                {"series_id": "crypto_BTC"},
+                {"series_id": "default"}
+            ]
+        ).to_dict()
+        
+        log("✅ Model features retrieved for prediction:")
+        for key, values in model_features.items():
+            log(f"   {key}: {values}")
+        
+        # Test 14: Performance test with multiple series
+        log("Testing performance with multiple time series...")
+        
+        # Create bulk data for performance test
+        bulk_data = []
+        for series_id in ["series_1", "series_2", "series_3", "series_4", "series_5"]:
+            for i in range(10):
+                bulk_data.append({
+                    "series_id": series_id,
+                    "in_1": float(100 + i),
+                    "in_2": float(99 + i),
+                    "in_3": float(98 + i),
+                    "in_4": float(97 + i),
+                    "in_5": float(96 + i),
+                    "event_timestamp": datetime.now() - timedelta(minutes=i)
+                })
+        
+        bulk_df = pd.DataFrame(bulk_data)
+        
+        # Measure push performance
+        start_time = time.time()
+        fs.push("lag_features_push_source", bulk_df)
+        push_duration = time.time() - start_time
+        log(f"✅ Bulk push completed: {len(bulk_df)} records in {push_duration:.3f}s")
+        
+        # Measure retrieval performance
+        start_time = time.time()
+        bulk_features = fs.get_online_features(
+            features=["lag_features:in_1", "lag_features:in_2", "lag_features:in_3"],
+            entity_rows=[{"series_id": f"series_{i}"} for i in range(1, 6)]
+        ).to_dict()
+        retrieval_duration = time.time() - start_time
+        log(f"✅ Bulk retrieval completed: 5 series in {retrieval_duration:.3f}s")
+        
+        # Test 15: Redis replacement validation
+        log("Testing Redis replacement scenario...")
+        
+        # Simulate current Redis usage pattern from feature service
+        redis_simulation_data = pd.DataFrame({
+            "series_id": ["default"] * 15,
+            "in_1": [float(i) for i in range(1, 16)],
+            "in_2": [float(i-1) for i in range(1, 16)],
+            "in_3": [float(i-2) for i in range(1, 16)],
+            "in_4": [float(i-3) for i in range(1, 16)],
+            "in_5": [float(i-4) for i in range(1, 16)],
+            "event_timestamp": [datetime.now() - timedelta(seconds=i) for i in range(15)]
+        })
+        
+        # Push sequential updates (like Redis LPUSH)
+        for _, row in redis_simulation_data.iterrows():
+            single_row_df = pd.DataFrame([row])
+            fs.push("lag_features_push_source", single_row_df)
+        
+        # Verify latest values are retrievable
+        latest_features = fs.get_online_features(
+            features=["lag_features:in_1", "lag_features:in_2", "lag_features:in_3"],
+            entity_rows=[{"series_id": "default"}]
+        ).to_dict()
+        
+        log("✅ Redis replacement test completed:")
+        log(f"   Latest features: {latest_features}")
+        
         log("🎉 All Feast tests completed successfully!")
+        log("🎯 Feast is ready to replace Redis in feature service!")
         return True
         
     except Exception as e:

@@ -24,4 +24,7 @@ COPY test_feast_timescale.py .
 RUN useradd -m -u 1000 testuser
 USER testuser
 
-CMD ["python", "test_feast_timescale.py"]
+# Set working directory to user home
+WORKDIR /home/testuser
+
+CMD ["python", "/app/test_feast_timescale.py"]
