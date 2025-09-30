@@ -104,8 +104,9 @@ def create_feature_store_config():
 project: mlops_test
 registry:
   registry_type: sql
-  path: postgresql://postgres:password@timescaledb.feast.svc.cluster.local:5432/mlops
+  path: postgresql+psycopg://postgres:password@timescaledb.feast.svc.cluster.local:5432/mlops
 provider: local
+entity_key_serialization_version: 2
 online_store:
   type: postgres
   host: timescaledb.feast.svc.cluster.local
@@ -183,6 +184,15 @@ def test_feast_comprehensive():
             description="User features for ML model testing"
         )
         
+        product_push_source = PushSource(
+            name="product_push_source",
+            batch_source=PostgreSQLSource(
+                name="product_features_source",
+                query="SELECT product_id, price, category_id, event_timestamp FROM product_features_offline",
+                timestamp_field="event_timestamp"
+            )
+        )
+        
         product_features_fv = FeatureView(
             name="product_features",
             entities=[product_entity],
@@ -190,21 +200,14 @@ def test_feast_comprehensive():
                 Field(name="price", dtype=Float32, description="Product price"),
                 Field(name="category_id", dtype=Int64, description="Product category"),
             ],
-            source=PushSource(
-                name="product_push_source",
-                batch_source=PostgreSQLSource(
-                    name="product_features_source",
-                    query="SELECT product_id, price, category_id, event_timestamp FROM product_features_offline",
-                    timestamp_field="event_timestamp"
-                )
-            ),
+            source=product_push_source,
             ttl=timedelta(days=30),
             description="Product features for recommendations"
         )
         
         # Test 5: Apply to Feast registry
         log("Applying feature definitions to registry...")
-        fs.apply([user_entity, product_entity, user_features_fv, product_features_fv])
+        fs.apply([user_entity, product_entity, offline_source, push_source, product_push_source, user_features_fv, product_features_fv])
         log("✅ Feature definitions applied successfully")
         
         # Test 6: Verify registry contents
@@ -370,6 +373,15 @@ def test_feast_comprehensive():
             value_type=ValueType.STRING
         )
         
+        lag_push_source = PushSource(
+            name="lag_features_push_source",
+            batch_source=PostgreSQLSource(
+                name="lag_features_source",
+                query="SELECT series_id, in_1, in_2, in_3, in_4, in_5, event_timestamp FROM lag_features_offline",
+                timestamp_field="event_timestamp"
+            )
+        )
+        
         lag_features_fv = FeatureView(
             name="lag_features",
             entities=[series_entity],
@@ -380,19 +392,12 @@ def test_feast_comprehensive():
                 Field(name="in_4", dtype=Float32, description="Lag 4 feature"),
                 Field(name="in_5", dtype=Float32, description="Lag 5 feature"),
             ],
-            source=PushSource(
-                name="lag_features_push_source",
-                batch_source=PostgreSQLSource(
-                    name="lag_features_source",
-                    query="SELECT series_id, in_1, in_2, in_3, in_4, in_5, event_timestamp FROM lag_features_offline",
-                    timestamp_field="event_timestamp"
-                )
-            ),
+            source=lag_push_source,
             ttl=timedelta(hours=1),
             description="Lag features for time series prediction"
         )
         
-        fs.apply([series_entity, lag_features_fv])
+        fs.apply([series_entity, lag_push_source, lag_features_fv])
         log("✅ Lag features entity and feature view created")
         
         # Push lag features (simulating feature service behavior)
