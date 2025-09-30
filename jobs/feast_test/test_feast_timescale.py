@@ -205,9 +205,44 @@ def test_feast_comprehensive():
             description="Product features for recommendations"
         )
         
-        # Test 5: Apply to Feast registry
+        # Create lag features entity and feature view upfront
+        series_entity = Entity(
+            name="series_id",
+            description="Time series identifier",
+            value_type=ValueType.STRING
+        )
+        
+        lag_push_source = PushSource(
+            name="lag_features_push_source",
+            batch_source=PostgreSQLSource(
+                name="lag_features_source",
+                query="SELECT series_id, in_1, in_2, in_3, in_4, in_5, event_timestamp FROM lag_features_offline",
+                timestamp_field="event_timestamp"
+            )
+        )
+        
+        lag_features_fv = FeatureView(
+            name="lag_features",
+            entities=[series_entity],
+            schema=[
+                Field(name="in_1", dtype=Float32, description="Lag 1 feature"),
+                Field(name="in_2", dtype=Float32, description="Lag 2 feature"),
+                Field(name="in_3", dtype=Float32, description="Lag 3 feature"),
+                Field(name="in_4", dtype=Float32, description="Lag 4 feature"),
+                Field(name="in_5", dtype=Float32, description="Lag 5 feature"),
+            ],
+            source=lag_push_source,
+            ttl=timedelta(hours=1),
+            description="Lag features for time series prediction"
+        )
+        
+        # Test 5: Apply all feature definitions to registry
         log("Applying feature definitions to registry...")
-        fs.apply([user_entity, product_entity, offline_source, push_source, product_push_source, user_features_fv, product_features_fv])
+        fs.apply([
+            user_entity, product_entity, series_entity,
+            offline_source, push_source, product_push_source, lag_push_source,
+            user_features_fv, product_features_fv, lag_features_fv
+        ])
         log("✅ Feature definitions applied successfully")
         
         # Test 6: Verify registry contents
@@ -217,6 +252,10 @@ def test_feast_comprehensive():
         
         log(f"✅ Registry contains {len(entities)} entities: {[e.name for e in entities]}")
         log(f"✅ Registry contains {len(feature_views)} feature views: {[fv.name for fv in feature_views]}")
+        
+        # Verify lag features are registered
+        if 'series_id' in [e.name for e in entities] and 'lag_features' in [fv.name for fv in feature_views]:
+            log("✅ Lag features properly registered")
         
         # Test 7: Insert offline test data
         log("Setting up offline data...")
@@ -366,38 +405,6 @@ def test_feast_comprehensive():
             "event_timestamp": [datetime.now()] * 3
         })
         
-        # Create lag features entity and feature view
-        series_entity = Entity(
-            name="series_id",
-            description="Time series identifier",
-            value_type=ValueType.STRING
-        )
-        
-        lag_push_source = PushSource(
-            name="lag_features_push_source",
-            batch_source=PostgreSQLSource(
-                name="lag_features_source",
-                query="SELECT series_id, in_1, in_2, in_3, in_4, in_5, event_timestamp FROM lag_features_offline",
-                timestamp_field="event_timestamp"
-            )
-        )
-        
-        lag_features_fv = FeatureView(
-            name="lag_features",
-            entities=[series_entity],
-            schema=[
-                Field(name="in_1", dtype=Float32, description="Lag 1 feature"),
-                Field(name="in_2", dtype=Float32, description="Lag 2 feature"),
-                Field(name="in_3", dtype=Float32, description="Lag 3 feature"),
-                Field(name="in_4", dtype=Float32, description="Lag 4 feature"),
-                Field(name="in_5", dtype=Float32, description="Lag 5 feature"),
-            ],
-            source=lag_push_source,
-            ttl=timedelta(hours=1),
-            description="Lag features for time series prediction"
-        )
-        
-        fs.apply([series_entity, lag_push_source, lag_features_fv])
         log("✅ Lag features entity and feature view created")
         
         # Push lag features (simulating feature service behavior)
