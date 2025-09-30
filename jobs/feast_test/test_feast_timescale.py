@@ -332,11 +332,7 @@ def test_feast_comprehensive():
         
         ml_service = FeatureService(
             name="ml_model_features",
-            features=[
-                "user_features:feature_1",
-                "user_features:feature_2", 
-                "product_features:price"
-            ],
+            features=[user_features_fv, product_features_fv],
             description="Features for ML model serving"
         )
         
@@ -344,7 +340,11 @@ def test_feast_comprehensive():
         
         # Retrieve via feature service
         service_features = fs.get_online_features(
-            features=ml_service,
+            features=[
+                "user_features:feature_1",
+                "user_features:feature_2", 
+                "product_features:price"
+            ],
             entity_rows=[{"user_id": 1, "product_id": 101}]
         ).to_dict()
         
